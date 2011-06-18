@@ -78,6 +78,7 @@
   <ItemGroup>
     <Compile Include="ITransport.cs" />
     <Compile Include="MessageHandler.cs" />
+    <Compile Include="MessageInvocation.cs" />
     <Compile Include="MessagelessFacility.cs" />
     <Compile Include="MessagelessInterceptor.cs" />
     <Compile Include="MsmqTransport.cs" />

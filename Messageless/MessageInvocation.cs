@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using Castle.DynamicProxy;
 
@@ -12,6 +13,11 @@ namespace Messageless
         private object[] m_arguments;
         private Type[] m_genericArguments;
         private MethodInfo m_method;
+
+        public override string ToString()
+        {
+            return string.Format("InvocationTarget: {0}, TargetType: {1}, Arguments: {2}, GenericArguments: {3}, Method: {4}, Callstack: {5}", m_invocationTarget, m_targetType, m_arguments, m_genericArguments, m_method, new StackTrace());
+        }
 
         public MessageInvocation(IInvocation invocation)
         {

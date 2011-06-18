@@ -7,13 +7,21 @@ namespace Messageless
     public static class WindsorEx
     {
         internal const string ADDRESS = "address";
-        internal const string KEY = "key";
-        public static ComponentRegistration<T> At<T>(this ComponentRegistration<T> cr, string address, string key)
+        internal const string REMOTE_KEY = "remote-key";
+
+        public static ComponentRegistration<T> At<T>(this ComponentRegistration<T> componentRegistration, string address, string key)
         {
-            return cr
+            return componentRegistration.At(address, key, key);
+        }
+
+        public static ComponentRegistration<T> At<T>(this ComponentRegistration<T> componentRegistration, string address, string remoteKey, string localKey)
+        {
+            componentRegistration = componentRegistration
                 .Interceptors<MessagelessInterceptor>()
                 .AddAttributeDescriptor(ADDRESS, address)
-                .AddAttributeDescriptor(KEY, key);
+                .AddAttributeDescriptor(REMOTE_KEY, remoteKey).Named(localKey);
+
+            return componentRegistration;
         }
 
         public static T ResolveRemoteService<T>(this IWindsorContainer container, string address)

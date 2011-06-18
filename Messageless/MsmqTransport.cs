@@ -6,7 +6,7 @@ using System.Security.Principal;
 
 namespace Messageless
 {
-    public class MsmqTransport : ITransport
+    public class MsmqTransport : ITransport, IDisposable
     {
         private MessageQueue m_messageQueue;
         private IObservable<TransportMessage> m_msgs;
@@ -93,5 +93,14 @@ namespace Messageless
         {
             return m_msgs.Subscribe(observer);
         }
+
+        #region Implementation of IDisposable
+
+        public void Dispose()
+        {
+            m_messageQueue.Dispose();
+        }
+
+        #endregion
     }
 }

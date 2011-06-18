@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Messageless", "Messageless\Messageless.csproj", "{44234F16-8341-425E-8293-F29F25D68701}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Messageless.Tests", "Messageless.Tests\Messageless.Tests.csproj", "{B1071558-1BD6-4D69-BBE1-2C6F4B9B5927}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{44234F16-8341-425E-8293-F29F25D68701}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44234F16-8341-425E-8293-F29F25D68701}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44234F16-8341-425E-8293-F29F25D68701}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44234F16-8341-425E-8293-F29F25D68701}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1071558-1BD6-4D69-BBE1-2C6F4B9B5927}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1071558-1BD6-4D69-BBE1-2C6F4B9B5927}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1071558-1BD6-4D69-BBE1-2C6F4B9B5927}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1071558-1BD6-4D69-BBE1-2C6F4B9B5927}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

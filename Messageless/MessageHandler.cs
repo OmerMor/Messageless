@@ -47,7 +47,7 @@ namespace Messageless
 
         public void Start()
         {
-            m_subscription = m_transport.Subscribe(handleMessage);
+            m_subscription = m_transport.Subscribe(handleMessage, Console.WriteLine, () => Console.WriteLine("OnCompleted"));
         }
 
         public void Stop()

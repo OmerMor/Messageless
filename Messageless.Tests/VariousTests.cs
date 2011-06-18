@@ -15,6 +15,67 @@ namespace Messageless.Tests
     public class VariousTests
     {
         [Test]
+        public void Calling_method_on_proxy_should_be_propogated_to_remote_service_2_containers()
+        {
+            // arrange
+            using (var localContainer = new WindsorContainer().IntegrateMessageless(@".\private$\local"))
+            using (var remoteContainer = new WindsorContainer().IntegrateMessageless(@".\private$\remote"))
+            {
+                localContainer.Register(
+                    Component.For<IService>().LifeStyle.Transient.At(@".\private$\remote", "test-service", "test-proxy")
+                    );
+
+                remoteContainer.Register(
+                    Component.For<IService>().ImplementedBy<Service>().Named("test-service")
+                    );
+
+                var proxy = localContainer.Resolve<IService>();
+                var service = remoteContainer.Resolve<IService>();
+
+                var signal = new AutoResetEvent(false);
+                service.As<Service>().FooImpl = () => signal.Set();
+
+                // act
+                proxy.Foo();
+
+                // assert
+                var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
+                fooCalled.Should().BeTrue();
+            }
+        }
+
+        [Test]
+        public void Poison_message_in_local_queue_should_not_stop_handler()
+        {
+            using (var container = new WindsorContainer().IntegrateMessageless(@".\private$\local"))
+            {
+                container.Register(
+                    Component.For<IService>().LifeStyle.Transient.At(@".\private$\local", "test-service", "test-proxy"),
+                    Component.For<IService>().ImplementedBy<Service>().Named("test-service")
+                    );
+
+                var proxy = container.Resolve<IService>("test-proxy");
+                proxy.GetType().Should().NotBe(typeof(Service));
+
+                var service = container.Resolve<IService>("test-service");
+                service.Should().BeOfType<Service>();
+                var signal = new AutoResetEvent(false);
+                service.As<Service>().FooImpl = () => signal.Set();
+
+                // act
+                var transport = container.Resolve<ITransport>();
+                var poisonMsg = new TransportMessage(new byte[] { 1, 2, 3 }, @".\private$\local", "poison");
+                transport.OnNext(poisonMsg);
+                transport.OnNext(poisonMsg);
+
+                proxy.Foo();
+
+                // assert
+                var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
+                fooCalled.Should().BeTrue();
+            }
+        }
+        [Test]
         public void Calling_method_on_proxy_should_be_propogated_to_remote_service()
         {
             // arrange
@@ -26,7 +87,7 @@ namespace Messageless.Tests
                     );
 
                 var proxy = container.Resolve<IService>("test-proxy");
-                proxy.GetType().Should().NotBe(typeof (Service));
+                proxy.GetType().Should().NotBe(typeof(Service));
 
                 var service = container.Resolve<IService>("test-service");
                 service.Should().BeOfType<Service>();

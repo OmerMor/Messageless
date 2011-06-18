@@ -18,11 +18,12 @@ namespace Messageless
                 (cb,obj) => m_messageQueue.BeginReceive(MessageQueue.InfiniteTimeout, obj, cb), 
                 m_messageQueue.EndReceive);
 
-            m_msgs = receiveAsync()
+            m_msgs = Observable.Defer(receiveAsync)
+                .Repeat()
                 .Publish()
                 .RefCount()
                 .Select(msg => msg.Body)
-                .Cast<TransportMessage>();
+                .OfType<TransportMessage>();
         }
 
         private static MessageQueue getIncomingQueue(string path)

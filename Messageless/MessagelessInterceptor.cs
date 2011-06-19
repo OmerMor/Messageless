@@ -21,24 +21,32 @@ namespace Messageless
         {
         }
 
-// ReSharper disable MemberCanBePrivate.Global
+        // ReSharper disable MemberCanBePrivate.Global
         public MessagelessInterceptor(string address, ITransport transport)
-// ReSharper restore MemberCanBePrivate.Global
+        // ReSharper restore MemberCanBePrivate.Global
         {
             m_address = address;
             m_transport = transport;
             m_formatter = new BinaryFormatter();
-
         }
 
         public void Intercept(IInvocation invocation)
         {
+            assertIsValid(invocation);
+
             var address = m_address ?? m_target.Configuration.Attributes[WindsorEx.ADDRESS];
             var key = m_target.Configuration.Attributes[WindsorEx.REMOTE_KEY];
             Console.WriteLine("invoking {0} on {1}", invocation, address);
             var payload = serialize(invocation);
             var transportMessage = new TransportMessage(payload, address, key);
+
             m_transport.OnNext(transportMessage);
+        }
+
+        private void assertIsValid(IInvocation invocation)
+        {
+            if (invocation.Method.ReturnType != typeof(void))
+                throw new InvalidOperationException("Tried to call a method that returns a value on a proxy. ");
         }
 
         private byte[] serialize(IInvocation invocation)

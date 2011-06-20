@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -38,10 +40,33 @@ namespace Messageless
             var address = m_address ?? m_target.Configuration.Attributes[WindsorEx.ADDRESS];
             var key = m_target.Configuration.Attributes[WindsorEx.REMOTE_KEY];
             Console.WriteLine("invoking {0} on {1}", invocation, address);
+
+            replaceCallbacksWithTokens(invocation);
+
             var payload = serialize(invocation);
             var transportMessage = new TransportMessage(payload, address, key);
 
             m_transport.OnNext(transportMessage);
+        }
+
+        private void replaceCallbacksWithTokens(IInvocation invocation)
+        {
+            for (var i = 0; i < invocation.Arguments.Length; i++)
+            {
+                var callback = invocation.Arguments[i] as MulticastDelegate;
+                if (callback == null) continue;
+
+                var token = storeCallback(callback);
+                invocation.Arguments[i] = token;
+            }
+        }
+        private readonly ConcurrentDictionary<Guid, MulticastDelegate> m_callbackStore = new ConcurrentDictionary<Guid, MulticastDelegate>();
+        private Guid storeCallback(MulticastDelegate callback)
+        {
+            var token = Guid.NewGuid();
+            m_callbackStore[token] = callback;
+
+            return token;
         }
 
         private void assertIsValid(IInvocation invocation)

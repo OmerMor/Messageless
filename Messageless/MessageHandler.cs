@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using Castle.Core;
 using Castle.DynamicProxy;
@@ -33,6 +34,9 @@ namespace Messageless
                 var invocation = (MessageInvocation)formatter.Deserialize(stream);
 
                 var target = m_kernel.Resolve(message.Key, invocation.Method.DeclaringType);
+
+                replaceTokensWithCallbackProxies(invocation);
+
                 invocation.InvocationTarget = target;
                 invocation.Proceed();
             }
@@ -40,6 +44,19 @@ namespace Messageless
             {
                 //TODO: log
                 Console.WriteLine(ex);
+            }
+        }
+
+        private void replaceTokensWithCallbackProxies(IInvocation invocation)
+        {
+            var parameters = invocation.Method.GetParameters();
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var isDelegate = parameters[i].ParameterType.IsSubclassOf(typeof(MulticastDelegate));
+                if(!isDelegate)
+                    continue;
+
+                invocation.Arguments[i] = null;
             }
         }
 

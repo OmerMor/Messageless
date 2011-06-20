@@ -143,6 +143,35 @@ namespace Messageless.Tests
         }
 
         [Test]
+        public void Calling_method_with_callback_on_proxy_should_be_able_to_round_trip()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            const int magicNumber = 666;
+            service.As<Service>().MethodWithCallbackImpl = cb => cb(magicNumber);
+            var result = new WaitableValue<int>();
+
+            // act
+            proxy.MethodWithCallback(x => result.Value = x);
+
+            // assert
+            var callbackCalled = result.WaitOne(TimeSpan.FromSeconds(1));
+            callbackCalled.Should().BeTrue();
+
+            result.Value.Should().Be(magicNumber);
+        }
+
+        [Test]
         public void Poison_message_in_local_queue_should_not_stop_handler()
         {
             // arrange
@@ -330,8 +359,9 @@ namespace Messageless.Tests
 
         public Service()
         {
-            FooImpl = () => { };
+            FooImpl = delegate { };
             GetReturnValueImpl = () => null;
+            MethodWithCallbackImpl = delegate { };
         }
 
         public void Foo()
@@ -362,7 +392,14 @@ namespace Messageless.Tests
             param = GetReturnValueImpl();
         }
 
+        public void MethodWithCallback(Action<int> callback)
+        {
+            Console.WriteLine("Service.MethodWithCallback() called");
+            MethodWithCallbackImpl(callback);
+        }
+
         public Func<object> GetReturnValueImpl { get; set; }
+        public Action<Action<int>> MethodWithCallbackImpl { get; set; }
 
         #endregion
     }
@@ -373,6 +410,7 @@ namespace Messageless.Tests
         object GetReturnValue();
         void MethodWithOutParams(out object param);
         void MethodWithRefParams(ref object param);
+        void MethodWithCallback(Action<int> callback);
     }
 
     public class WaitableValue<T>

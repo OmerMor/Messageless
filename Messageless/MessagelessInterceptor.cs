@@ -6,6 +6,7 @@ using System.Text;
 using Castle.Core;
 using Castle.Core.Interceptor;
 using Castle.DynamicProxy;
+using System.Linq;
 
 namespace Messageless
 {
@@ -45,8 +46,14 @@ namespace Messageless
 
         private void assertIsValid(IInvocation invocation)
         {
-            if (invocation.Method.ReturnType != typeof(void))
+            var hasReturnValue = invocation.Method.ReturnType != typeof(void);
+            if (hasReturnValue)
                 throw new InvalidOperationException("Tried to call a method that returns a value on a proxy. ");
+
+            var hasOutParams = invocation.Method.GetParameters().Any(pi => pi.IsOut);
+            if (hasOutParams)
+                throw new InvalidOperationException("Tried to call a method with out-parameters on a proxy. ");
+
         }
 
         private byte[] serialize(IInvocation invocation)

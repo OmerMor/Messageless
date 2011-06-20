@@ -46,7 +46,43 @@ namespace Messageless.Tests
             Action action = () => proxy.GetReturnValue();
 
             // assert
-            action.ShouldThrow<Exception>();
+            action.ShouldThrow<InvalidOperationException>();
+        }
+
+        [Test]
+        public void Calling_method_with_out_params_on_proxy_should_throw()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
+
+            // act
+            object param;
+            Action action = () => proxy.MethodWithOutParams(out param);
+
+            // assert
+            action.ShouldThrow<InvalidOperationException>();
+        }
+
+        [Test]
+        public void Calling_method_with_ref_params_on_proxy_should_not_throw()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
+
+            // act
+            object param = null;
+            Action action = () => proxy.MethodWithRefParams(ref param);
+
+            // assert
+            action.ShouldNotThrow();
         }
 
         [Test]
@@ -312,6 +348,20 @@ namespace Messageless.Tests
             return GetReturnValueImpl();
         }
 
+        public void MethodWithOutParams(out object param)
+        {
+            Console.WriteLine("Service.MethodWithOutParams() called");
+            param = GetReturnValueImpl();
+        }
+
+        // ReSharper disable RedundantAssignment
+        public void MethodWithRefParams(ref object param)
+        // ReSharper restore RedundantAssignment
+        {
+            Console.WriteLine("Service.MethodWithRefParams() called");
+            param = GetReturnValueImpl();
+        }
+
         public Func<object> GetReturnValueImpl { get; set; }
 
         #endregion
@@ -321,6 +371,8 @@ namespace Messageless.Tests
     {
         void Foo();
         object GetReturnValue();
+        void MethodWithOutParams(out object param);
+        void MethodWithRefParams(ref object param);
     }
 
     public class WaitableValue<T>

@@ -172,6 +172,35 @@ namespace Messageless.Tests
         }
 
         [Test]
+        public void Calling_method_with_null_callback_on_proxy_should_not_fail()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            const int magicNumber = 666;
+            var isNullCallback = new WaitableValue<bool>();
+            service.As<Service>().MethodWithCallbackImpl = cb => isNullCallback.Value = (cb == null);
+
+            // act
+            proxy.MethodWithCallback(null);
+
+            // assert
+            var methodWasCalled = isNullCallback.WaitOne(TimeSpan.FromSeconds(1));
+            methodWasCalled.Should().BeTrue();
+
+            isNullCallback.Value.Should().BeTrue();
+        }
+
+        [Test]
         public void Poison_message_in_local_queue_should_not_stop_handler()
         {
             // arrange

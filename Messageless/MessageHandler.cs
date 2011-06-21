@@ -41,6 +41,7 @@ namespace Messageless
 
                     invocation.InvocationTarget = target;
                     invocation.Proceed();
+                    return;
                 }
                 var cbMsg = (CallbackMessage)msg;
 

@@ -9,27 +9,34 @@ using Castle.Core;
 using Castle.Core.Interceptor;
 using Castle.DynamicProxy;
 using System.Linq;
+using Castle.MicroKernel;
+using Castle.MicroKernel.Registration;
 
 namespace Messageless
 {
+    //public class CallbackRegistry
     public class MessagelessInterceptor : IInterceptor, IOnBehalfAware
     {
         private ComponentModel m_target;
         private readonly string m_address;
         private readonly ITransport m_transport;
+        private readonly IKernel m_kernel;
         private readonly IFormatter m_formatter;
+        private readonly ConcurrentDictionary<Guid, MulticastDelegate> m_callbackStore = new ConcurrentDictionary<Guid, MulticastDelegate>();
 
-        public MessagelessInterceptor(ITransport transport)
-            : this(null, transport)
+        public MessagelessInterceptor(ITransport transport, IKernel kernel)
+            : this(null, transport, kernel)
         {
         }
 
         // ReSharper disable MemberCanBePrivate.Global
-        public MessagelessInterceptor(string address, ITransport transport)
+
+        public MessagelessInterceptor(string address, ITransport transport, IKernel kernel)
         // ReSharper restore MemberCanBePrivate.Global
         {
             m_address = address;
             m_transport = transport;
+            m_kernel = kernel;
             m_formatter = new BinaryFormatter();
         }
 
@@ -60,11 +67,12 @@ namespace Messageless
                 invocation.Arguments[i] = token;
             }
         }
-        private readonly ConcurrentDictionary<Guid, MulticastDelegate> m_callbackStore = new ConcurrentDictionary<Guid, MulticastDelegate>();
+
         private Guid storeCallback(MulticastDelegate callback)
         {
             var token = Guid.NewGuid();
-            m_callbackStore[token] = callback;
+            //m_callbackStore[token] = callback;
+            m_kernel.Register(Component.For<Delegate>().Instance(callback).Named(token.ToString()));
 
             return token;
         }

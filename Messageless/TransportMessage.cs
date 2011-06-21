@@ -19,5 +19,6 @@ namespace Messageless
         public byte[] Payload { get; set; }
         public string Path { get; set; }
         public string Key { get; set; }
+        public string SenderPath { get; set; }
     }
 }

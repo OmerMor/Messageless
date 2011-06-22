@@ -141,6 +141,32 @@ namespace Messageless.Tests
             var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
             fooCalled.Should().BeTrue();
         }
+        [Test]
+        public void Calling_generic_method_on_proxy_should_be_propogated_to_remote_service()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            var waitableValue = new WaitableValue<int>();
+            service.As<Service>().GenericMethodImpl = arg => { waitableValue.Value = (int) arg; };
+            const int magicNumber = 666;
+            // act
+            proxy.GenericMethod(magicNumber);
+
+            // assert
+            var methodCalled = waitableValue.WaitOne(TimeSpan.FromSeconds(1));
+            methodCalled.Should().BeTrue();
+            waitableValue.Value.Should().Be(magicNumber);
+        }
 
         [Test]
         public void Calling_method_with_callback_on_proxy_should_be_able_to_round_trip()
@@ -391,12 +417,19 @@ namespace Messageless.Tests
             FooImpl = delegate { };
             GetReturnValueImpl = () => null;
             MethodWithCallbackImpl = delegate { };
+            GenericMethodImpl = delegate { };
         }
 
         public void Foo()
         {
             Console.WriteLine("Service.Foo() called");
             FooImpl();
+        }
+
+        public void GenericMethod<T>(T arg)
+        {
+            Console.WriteLine("Service.GenericMethod<T>() called");
+            GenericMethodImpl(arg);
         }
 
         public Action FooImpl { get; set; }
@@ -429,6 +462,7 @@ namespace Messageless.Tests
 
         public Func<object> GetReturnValueImpl { get; set; }
         public Action<Action<int>> MethodWithCallbackImpl { get; set; }
+        public Action<object> GenericMethodImpl { get; set; }
 
         #endregion
     }
@@ -436,6 +470,7 @@ namespace Messageless.Tests
     public interface IService
     {
         void Foo();
+        void GenericMethod<T>(T arg);
         object GetReturnValue();
         void MethodWithOutParams(out object param);
         void MethodWithRefParams(ref object param);

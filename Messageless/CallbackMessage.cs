@@ -22,16 +22,14 @@ namespace Messageless
     {
         public MethodInfo Method { get; set; }
         public object[] Arguments { get; set; }
-        public object Target { get; set; }
 
         public InvocationMessage(IInvocation invocation)
-            : this(invocation.InvocationTarget, invocation.Method, invocation.Arguments)
+            : this(invocation.Method, invocation.Arguments)
         {
         }
 
-        public InvocationMessage(object target, MethodInfo method, object[] arguments)
+        public InvocationMessage(MethodInfo method, object[] arguments)
         {
-            Target = target;
             Method = method;
             Arguments = arguments;
         }

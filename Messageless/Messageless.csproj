@@ -79,7 +79,9 @@
     <Compile Include="CallbackInterceptor.cs" />
     <Compile Include="CallbackMessage.cs" />
     <Compile Include="Context.cs" />
+    <Compile Include="IMessage.cs" />
     <Compile Include="IMessageHandler.cs" />
+    <Compile Include="InvocationMessage.cs" />
     <Compile Include="ITransport.cs" />
     <Compile Include="MessageHandler.cs" />
     <Compile Include="MessagelessFacility.cs" />

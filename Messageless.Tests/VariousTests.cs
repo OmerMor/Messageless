@@ -212,7 +212,6 @@ namespace Messageless.Tests
             var proxy = m_localContainer.Resolve<IService>();
             var service = m_remoteContainer.Resolve<IService>();
 
-            const int magicNumber = 666;
             var isNullCallback = new WaitableValue<bool>();
             service.As<Service>().MethodWithCallbackImpl = cb => isNullCallback.Value = (cb == null);
 

@@ -37,16 +37,12 @@ namespace Messageless
                     invocationMessage.Method.Invoke(target, invocationMessage.Arguments);
                     return;
                 }
-                var cbMsg = (CallbackMessage)msg;
 
+                var cbMsg = (CallbackMessage)msg;
                 var callback = m_kernel.Resolve<Delegate>(message.Key);
+                replaceTokensWithCallbackProxies(cbMsg, message.SenderPath);
                 m_kernel.RemoveComponent(message.Key);
                 callback.DynamicInvoke(cbMsg.Arguments);
-                //replaceTokensWithCallbackProxies(invocation, message.SenderPath);
-
-                //invocation.InvocationTarget = target;
-                //invocation.Proceed();
- 
             }
             catch (Exception ex)
             {
@@ -55,7 +51,7 @@ namespace Messageless
             }
         }
 
-        private void replaceTokensWithCallbackProxies(InvocationMessage invocation, string senderPath)
+        private void replaceTokensWithCallbackProxies(IMessage invocation, string senderPath)
         {
             var parameters = invocation.Method.GetParameters();
             for (var i = 0; i < parameters.Length; i++)
@@ -75,7 +71,7 @@ namespace Messageless
         private Delegate tokenToCallbackProxy(Guid token, Type callbackType, string senderPath)
         {
             var context = new Context(token, senderPath);
-            var callbackInterceptor = new CallbackInterceptor(context, m_transport, m_serializer);
+            var callbackInterceptor = new CallbackInterceptor(context, callbackType, m_transport, m_serializer);
             var callbackMethodInfo = callbackType.GetMethod("Invoke");
             var parameterTypes = callbackMethodInfo.GetParameters()
                 .Select(p => p.ParameterType)

@@ -76,14 +76,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CallbackInterceptor.cs" />
+    <Compile Include="CallbackMessage.cs" />
+    <Compile Include="Context.cs" />
+    <Compile Include="IMessageHandler.cs" />
     <Compile Include="ITransport.cs" />
     <Compile Include="MessageHandler.cs" />
-    <Compile Include="MessageInvocation.cs" />
     <Compile Include="MessagelessFacility.cs" />
     <Compile Include="MessagelessInterceptor.cs" />
     <Compile Include="MsmqTransport.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TransportMessage.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="WindsorEx.cs" />
   </ItemGroup>
   <ItemGroup>

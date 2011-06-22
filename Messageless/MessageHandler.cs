@@ -8,46 +8,40 @@ using System.Linq;
 
 namespace Messageless
 {
-    public interface IMessageHandler
-    {
-    }
-
     public class MessageHandler : IStartable, IMessageHandler
     {
         private readonly IKernel m_kernel;
+        private readonly ISerializer m_serializer;
         private readonly ITransport m_transport;
         private IDisposable m_subscription;
 
-        public MessageHandler(IKernel kernel, ITransport transport)
+        public MessageHandler(IKernel kernel, ITransport transport, ISerializer serializer)
         {
             m_kernel = kernel;
             m_transport = transport;
+            m_serializer = serializer;
         }
 
         private void handleMessage(TransportMessage message)
         {
             try
             {
-                var formatter = new BinaryFormatter();
-                var stream = new MemoryStream(message.Payload);
-                var msg = formatter.Deserialize(stream);
-                if (msg is MessageInvocation)
+                var msg = m_serializer.Deserialize(message.Payload);
+                if (msg is InvocationMessage)
                 {
-                    var invocation = (MessageInvocation)msg;
+                    var invocationMessage = (InvocationMessage)msg;
 
-                    var target = m_kernel.Resolve(message.Key, invocation.Method.DeclaringType);
+                    var target = m_kernel.Resolve(message.Key, invocationMessage.Method.DeclaringType);
 
-                    replaceTokensWithCallbackProxies(invocation, message.SenderPath);
-
-                    invocation.InvocationTarget = target;
-                    invocation.Proceed();
+                    replaceTokensWithCallbackProxies(invocationMessage, message.SenderPath);
+                    invocationMessage.Method.Invoke(target, invocationMessage.Arguments);
                     return;
                 }
                 var cbMsg = (CallbackMessage)msg;
 
                 var callback = m_kernel.Resolve<Delegate>(message.Key);
                 m_kernel.RemoveComponent(message.Key);
-                callback.DynamicInvoke(cbMsg.Args);
+                callback.DynamicInvoke(cbMsg.Arguments);
                 //replaceTokensWithCallbackProxies(invocation, message.SenderPath);
 
                 //invocation.InvocationTarget = target;
@@ -61,7 +55,7 @@ namespace Messageless
             }
         }
 
-        private void replaceTokensWithCallbackProxies(IInvocation invocation, string senderPath)
+        private void replaceTokensWithCallbackProxies(InvocationMessage invocation, string senderPath)
         {
             var parameters = invocation.Method.GetParameters();
             for (var i = 0; i < parameters.Length; i++)
@@ -81,65 +75,20 @@ namespace Messageless
         private Delegate tokenToCallbackProxy(Guid token, Type callbackType, string senderPath)
         {
             var context = new Context(token, senderPath);
-            var callbackInterceptor = new CallbackInterceptor(m_transport, context);
+            var callbackInterceptor = new CallbackInterceptor(context, m_transport, m_serializer);
             var callbackMethodInfo = callbackType.GetMethod("Invoke");
             var parameterTypes = callbackMethodInfo.GetParameters()
-                .Select(p => p.ParameterType).ToArray();
+                .Select(p => p.ParameterType)
+                .ToArray();
             var openGenericMethod = callbackInterceptor.GetType().GetMethods()
                 .Where(mi => mi.Name == "Intercept")
                 .Single(mi =>mi.GetParameters().Count() == parameterTypes.Length);
             var closeGenericMethod = openGenericMethod.MakeGenericMethod(parameterTypes);
             var callbackProxy = Delegate.CreateDelegate(callbackType, callbackInterceptor,
-                                                        closeGenericMethod, true);
+                                                        closeGenericMethod, throwOnBindFailure: true);
             return callbackProxy;
         }
 
-        [Serializable]
-        public class Context
-        {
-            public Guid Token { get; set; }
-            public string Path { get; set; }
-
-            public Context(Guid token, string path)
-            {
-                Token = token;
-                Path = path;
-            }
-        }
-        [Serializable]
-        public class CallbackMessage
-        {
-            public Context Context { get; set; }
-            public object[] Args { get; set; }
-
-            public CallbackMessage(Context context, object[] args)
-            {
-                Context = context;
-                Args = args;
-            }
-        }
-        public class CallbackInterceptor
-        {
-            private readonly Context m_context;
-            private readonly ITransport m_transport;
-
-            public CallbackInterceptor(ITransport transport, Context context)
-            {
-                m_transport = transport;
-                m_context = context;
-            }
-
-            public void Intercept<T>(T arg1)
-            {
-                Console.WriteLine("CallbackInterceptor.Intercept");
-                var msg = new CallbackMessage(m_context, new object[] {arg1});
-                var serializer = new BinaryFormatter();
-                var stream = new MemoryStream();
-                serializer.Serialize(stream, msg);
-                var payload = stream.ToArray();
-                m_transport.OnNext(new TransportMessage(payload, m_context.Path, m_context.Token.ToString()));
-            }
-        }
         #region Implementation of IStartable
 
         public void Start()
@@ -153,13 +102,5 @@ namespace Messageless
         }
 
         #endregion
-    }
-
-    internal static class Utils
-    {
-        public static bool IsDelegate(this Type type)
-        {
-            return typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
-        }
     }
 }

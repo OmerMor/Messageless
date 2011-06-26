@@ -86,6 +86,31 @@ namespace Messageless.Tests
         }
 
         [Test]
+        public void Callback_with_return_value_should_throw()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
+            var service = m_remoteContainer.Resolve<IService>(SERVICE_KEY);
+            var signal = new AutoResetEvent(false);
+            service.As<Service>().MethodWithFuncCallbackImpl = func => { signal.Set(); func(); };
+
+            // act
+            Action action = () => proxy.MethodWithFuncCallback(() => 0);
+            // ReSharper restore EmptyGeneralCatchClause
+
+            // assert
+            action.ShouldThrow<InvalidOperationException>();
+        }
+
+        [Test]
         public void Calling_method_with_return_value_on_proxy_should_not_reach_the_service()
         {
             // arrange
@@ -108,7 +133,7 @@ namespace Messageless.Tests
                 proxy.GetReturnValue();
             }
             // ReSharper disable EmptyGeneralCatchClause
-            catch{}
+            catch { }
             // ReSharper restore EmptyGeneralCatchClause
 
             // assert
@@ -251,6 +276,61 @@ namespace Messageless.Tests
             methodWasCalled.Should().BeTrue();
 
             isNullCallback.Value.Should().BeTrue();
+        }
+        [Test]
+        public void Calling_method_with_parameterless_callback_on_proxy_should_not_fail()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            var result = new WaitableValue<int>();
+            const int magicNumber = 666;
+            service.As<Service>().MethodWithParameterlessCallbackImpl = cb => cb();
+
+            // act
+            proxy.MethodWithParameterlessCallback(() => result.Value = magicNumber);
+
+            // assert
+            var callbackWasCalled = result.WaitOne(TimeSpan.FromSeconds(1));
+            callbackWasCalled.Should().BeTrue();
+            result.Value.Should().Be(magicNumber);
+        }
+        [Test]
+        public void Calling_method_with_callback_on_proxy_should_not_fail()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            var result = new WaitableValue<int>();
+            const int magicNumber = 666;
+            service.As<Service>().MethodWithCallbackImpl = cb => cb(magicNumber);
+
+            // act
+            proxy.MethodWithCallback(i => result.Value = i);
+
+            // assert
+            var methodWasCalled = result.WaitOne(TimeSpan.FromSeconds(1));
+            methodWasCalled.Should().BeTrue();
+
+            result.Value.Should().Be(magicNumber);
         }
 
         [Test]
@@ -445,6 +525,7 @@ namespace Messageless.Tests
             GetReturnValueImpl = () => null;
             MethodWithCallbackImpl = delegate { };
             MethodWithNestedCallbackImpl = delegate { };
+            MethodWithParameterlessCallbackImpl = delegate { };
             GenericMethodImpl = delegate { };
         }
 
@@ -488,6 +569,12 @@ namespace Messageless.Tests
             MethodWithCallbackImpl(callback);
         }
 
+        public void MethodWithFuncCallback(Func<int> callback)
+        {
+            Console.WriteLine("Service.MethodWithFuncCallback() called");
+            MethodWithFuncCallbackImpl(callback);
+        }
+
         public void MethodWithNestedCallback(Action<Action<Action<int>>> callback)
         {
             Console.WriteLine("Service.MethodWithNestedCallback() called");
@@ -500,8 +587,16 @@ namespace Messageless.Tests
             GenericMethodWithNestedCallbackImpl(value, callback);
         }
 
+        public void MethodWithParameterlessCallback(Action callback)
+        {
+            Console.WriteLine("Service.MethodWithParameterlessCallback() called");
+            MethodWithParameterlessCallbackImpl(callback);
+        }
+
         public Func<object> GetReturnValueImpl { get; set; }
         public Action<Action<int>> MethodWithCallbackImpl { get; set; }
+        public Action<Action> MethodWithParameterlessCallbackImpl { get; set; }
+        public Action<Func<int>> MethodWithFuncCallbackImpl { get; set; }
         public Action<Action<Action<Action<int>>>> MethodWithNestedCallbackImpl { get; set; }
         public Action<object,Action<Action<Delegate>>> GenericMethodWithNestedCallbackImpl { get; set; }
         public Action<object> GenericMethodImpl { get; set; }
@@ -517,8 +612,10 @@ namespace Messageless.Tests
         void MethodWithOutParams(out object param);
         void MethodWithRefParams(ref object param);
         void MethodWithCallback(Action<int> callback);
+        void MethodWithFuncCallback(Func<int> callback);
         void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
         void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback);
+        void MethodWithParameterlessCallback(Action callback);
     }
 
     public class WaitableValue<T>

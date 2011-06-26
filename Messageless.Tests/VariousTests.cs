@@ -184,11 +184,39 @@ namespace Messageless.Tests
             var service = m_remoteContainer.Resolve<IService>();
 
             const int magicNumber = 666;
-            service.As<Service>().MethodWithNestedCallbackImpl = cb1 => cb1(cb2 => cb2(magicNumber)) ;
+            service.As<Service>().MethodWithNestedCallbackImpl = cb1 => cb1(cb2 => cb2(magicNumber));
             var result = new WaitableValue<int>();
 
             // act
             proxy.MethodWithNestedCallback(cb => cb(x => result.Value = x));
+
+            // assert
+            var callbackCalled = result.WaitOne(TimeSpan.FromSeconds(1));
+            callbackCalled.Should().BeTrue();
+
+            result.Value.Should().Be(magicNumber);
+        }
+        [Test]
+        public void Generic_nested_callbacks_should_be_able_to_round_trip()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+            var service = m_remoteContainer.Resolve<IService>();
+
+            const int magicNumber = 666;
+            service.As<Service>().GenericMethodWithNestedCallbackImpl = (o,cb1) => cb1(cb2 => ((Action<int>)cb2)((int) o));
+            var result = new WaitableValue<int>();
+
+            // act
+            proxy.GenericMethodWithNestedCallback(magicNumber, cb => cb(x => result.Value = x));
 
             // assert
             var callbackCalled = result.WaitOne(TimeSpan.FromSeconds(1));
@@ -466,9 +494,16 @@ namespace Messageless.Tests
             MethodWithNestedCallbackImpl(callback);
         }
 
+        public void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback)
+        {
+            Console.WriteLine("Service.GenericMethodWithNestedCallback() called");
+            GenericMethodWithNestedCallbackImpl(value, callback);
+        }
+
         public Func<object> GetReturnValueImpl { get; set; }
         public Action<Action<int>> MethodWithCallbackImpl { get; set; }
         public Action<Action<Action<Action<int>>>> MethodWithNestedCallbackImpl { get; set; }
+        public Action<object,Action<Action<Delegate>>> GenericMethodWithNestedCallbackImpl { get; set; }
         public Action<object> GenericMethodImpl { get; set; }
 
         #endregion
@@ -483,6 +518,7 @@ namespace Messageless.Tests
         void MethodWithRefParams(ref object param);
         void MethodWithCallback(Action<int> callback);
         void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
+        void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback);
     }
 
     public class WaitableValue<T>

@@ -17,7 +17,7 @@ namespace Messageless
         public static ComponentRegistration<T> At<T>(this ComponentRegistration<T> componentRegistration, string address, string remoteKey, string localKey)
         {
             componentRegistration = componentRegistration
-                .Interceptors<MessagelessInterceptor>()
+                .Interceptors<InvocationInterceptor>()
                 .AddAttributeDescriptor(ADDRESS, address)
                 .AddAttributeDescriptor(REMOTE_KEY, remoteKey).Named(localKey);
 

@@ -14,7 +14,7 @@ namespace Messageless
             Kernel.AddFacility<StartableFacility>();
             Kernel.Register(
                 Component.For<IMessageHandler>().ImplementedBy<MessageHandler>().Start(),
-                Component.For<MessagelessInterceptor>().LifeStyle.Transient,
+                Component.For<InvocationInterceptor>().LifeStyle.Transient,
                 Component.For<ISerializer>().ImplementedBy<BinarySerializer>(),
                 Component.For<ITransport>().ImplementedBy<MsmqTransport>().OnCreate(initTransport));
         }

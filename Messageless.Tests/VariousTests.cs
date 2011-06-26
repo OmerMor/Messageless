@@ -169,7 +169,7 @@ namespace Messageless.Tests
         }
 
         [Test]
-        public void Calling_method_with_callback_on_proxy_should_be_able_to_round_trip()
+        public void Nested_callbacks_should_be_able_to_round_trip()
         {
             // arrange
             m_localContainer.Register(
@@ -184,11 +184,11 @@ namespace Messageless.Tests
             var service = m_remoteContainer.Resolve<IService>();
 
             const int magicNumber = 666;
-            service.As<Service>().MethodWithCallbackImpl = cb => cb(magicNumber);
+            service.As<Service>().MethodWithNestedCallbackImpl = cb1 => cb1(cb2 => cb2(magicNumber)) ;
             var result = new WaitableValue<int>();
 
             // act
-            proxy.MethodWithCallback(x => result.Value = x);
+            proxy.MethodWithNestedCallback(cb => cb(x => result.Value = x));
 
             // assert
             var callbackCalled = result.WaitOne(TimeSpan.FromSeconds(1));
@@ -416,6 +416,7 @@ namespace Messageless.Tests
             FooImpl = delegate { };
             GetReturnValueImpl = () => null;
             MethodWithCallbackImpl = delegate { };
+            MethodWithNestedCallbackImpl = delegate { };
             GenericMethodImpl = delegate { };
         }
 
@@ -459,8 +460,15 @@ namespace Messageless.Tests
             MethodWithCallbackImpl(callback);
         }
 
+        public void MethodWithNestedCallback(Action<Action<Action<int>>> callback)
+        {
+            Console.WriteLine("Service.MethodWithNestedCallback() called");
+            MethodWithNestedCallbackImpl(callback);
+        }
+
         public Func<object> GetReturnValueImpl { get; set; }
         public Action<Action<int>> MethodWithCallbackImpl { get; set; }
+        public Action<Action<Action<Action<int>>>> MethodWithNestedCallbackImpl { get; set; }
         public Action<object> GenericMethodImpl { get; set; }
 
         #endregion
@@ -474,6 +482,7 @@ namespace Messageless.Tests
         void MethodWithOutParams(out object param);
         void MethodWithRefParams(ref object param);
         void MethodWithCallback(Action<int> callback);
+        void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
     }
 
     public class WaitableValue<T>

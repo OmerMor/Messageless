@@ -71,7 +71,7 @@ namespace Messageless
         private Delegate tokenToCallbackProxy(Guid token, Type callbackType, string senderPath)
         {
             var context = new Context(token, senderPath);
-            var callbackInterceptor = new CallbackInterceptor(context, callbackType, m_transport, m_serializer);
+            var callbackInterceptor = new CallbackInterceptor(context, callbackType, m_transport, m_serializer, m_kernel);
             var callbackMethodInfo = callbackType.GetMethod("Invoke");
             var parameterTypes = callbackMethodInfo.GetParameters()
                 .Select(p => p.ParameterType)

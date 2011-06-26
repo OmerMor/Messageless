@@ -1,19 +1,17 @@
 using System;
+using Castle.MicroKernel;
 
 namespace Messageless
 {
-    public class CallbackInterceptor
+    public class CallbackInterceptor : AbstractInterceptor
     {
         private readonly Context m_context;
         private readonly Type m_delegateType;
-        private readonly ITransport m_transport;
-        private readonly ISerializer m_serializer;
 
-        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer)
+        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer, IKernel kernel)
+            : base(transport, kernel, serializer)
         {
-            m_transport = transport;
             m_context = context;
-            m_serializer = serializer;
             m_delegateType = delegateType;
         }
 
@@ -68,6 +66,7 @@ namespace Messageless
         private void intercept(params object[] args)
         {
             var msg = new CallbackMessage(m_context, m_delegateType, args);
+            replaceCallbacksWithTokens(msg);
             var payload = m_serializer.Serialize(msg);
             var transportMessage = new TransportMessage(payload, m_context.Path, m_context.Token.ToString());
             m_transport.OnNext(transportMessage);

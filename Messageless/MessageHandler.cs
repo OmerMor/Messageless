@@ -76,12 +76,13 @@ namespace Messageless
             var parameterTypes = callbackMethodInfo.GetParameters()
                 .Select(p => p.ParameterType)
                 .ToArray();
-            var openGenericMethod = callbackInterceptor.GetType().GetMethods()
+            var method = callbackInterceptor.GetType().GetMethods()
                 .Where(mi => mi.Name == "Intercept")
                 .Single(mi =>mi.GetParameters().Count() == parameterTypes.Length);
-            var closeGenericMethod = openGenericMethod.MakeGenericMethod(parameterTypes);
+            if (method.IsGenericMethodDefinition)
+                method = method.MakeGenericMethod(parameterTypes);
             var callbackProxy = Delegate.CreateDelegate(callbackType, callbackInterceptor,
-                                                        closeGenericMethod, throwOnBindFailure: true);
+                                                        method, throwOnBindFailure: true);
             return callbackProxy;
         }
 

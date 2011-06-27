@@ -102,6 +102,7 @@ namespace Messageless
 
         public void Dispose()
         {
+            Console.WriteLine("Disposing MQ");
             m_messageQueue.Dispose();
         }
 

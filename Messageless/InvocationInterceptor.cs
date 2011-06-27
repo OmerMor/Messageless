@@ -26,7 +26,7 @@ namespace Messageless
 
         public void Intercept(IInvocation invocation)
         {
-            assertIsValid(invocation);
+            assertIsValid(invocation.Method);
 
             var address = m_address ?? m_target.Configuration.Attributes[WindsorEx.ADDRESS];
             var key = m_target.Configuration.Attributes[WindsorEx.REMOTE_KEY];

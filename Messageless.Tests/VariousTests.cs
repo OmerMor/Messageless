@@ -266,10 +266,10 @@ namespace Messageless.Tests
             var service = m_remoteContainer.Resolve<IService>();
 
             var isNullCallback = new WaitableValue<bool>();
-            service.As<Service>().MethodWithCallbackImpl = cb => isNullCallback.Value = (cb == null);
+            service.As<Service>().AddImpl = (x, y, cb) => isNullCallback.Value = (cb == null);
 
             // act
-            proxy.MethodWithCallback(null);
+            proxy.Add(111, 222, null);
 
             // assert
             var methodWasCalled = isNullCallback.WaitOne(TimeSpan.FromSeconds(1));
@@ -320,17 +320,16 @@ namespace Messageless.Tests
             var service = m_remoteContainer.Resolve<IService>();
 
             var result = new WaitableValue<int>();
-            const int magicNumber = 666;
-            service.As<Service>().MethodWithCallbackImpl = cb => cb(magicNumber);
+            service.As<Service>().AddImpl = (x, y, cb) => cb(x + y);
 
             // act
-            proxy.MethodWithCallback(i => result.Value = i);
+            proxy.Add(111, 222, i => result.Value = i);
 
             // assert
             var methodWasCalled = result.WaitOne(TimeSpan.FromSeconds(1));
             methodWasCalled.Should().BeTrue();
 
-            result.Value.Should().Be(magicNumber);
+            result.Value.Should().Be(111 + 222);
         }
 
         [Test]
@@ -523,7 +522,7 @@ namespace Messageless.Tests
         {
             FooImpl = delegate { };
             GetReturnValueImpl = () => null;
-            MethodWithCallbackImpl = delegate { };
+            AddImpl = delegate { };
             MethodWithNestedCallbackImpl = delegate { };
             MethodWithParameterlessCallbackImpl = delegate { };
             GenericMethodImpl = delegate { };
@@ -563,10 +562,10 @@ namespace Messageless.Tests
             param = GetReturnValueImpl();
         }
 
-        public void MethodWithCallback(Action<int> callback)
+        public void Add(int x, int y, Action<int> callback)
         {
-            Console.WriteLine("Service.MethodWithCallback() called");
-            MethodWithCallbackImpl(callback);
+            Console.WriteLine("Service.Add() called");
+            AddImpl(x, y, callback);
         }
 
         public void MethodWithFuncCallback(Func<int> callback)
@@ -594,7 +593,7 @@ namespace Messageless.Tests
         }
 
         public Func<object> GetReturnValueImpl { get; set; }
-        public Action<Action<int>> MethodWithCallbackImpl { get; set; }
+        public Action<int,int,Action<int>> AddImpl { get; set; }
         public Action<Action> MethodWithParameterlessCallbackImpl { get; set; }
         public Action<Func<int>> MethodWithFuncCallbackImpl { get; set; }
         public Action<Action<Action<Action<int>>>> MethodWithNestedCallbackImpl { get; set; }
@@ -611,7 +610,7 @@ namespace Messageless.Tests
         object GetReturnValue();
         void MethodWithOutParams(out object param);
         void MethodWithRefParams(ref object param);
-        void MethodWithCallback(Action<int> callback);
+        void Add(int x, int y, Action<int> callback);
         void MethodWithFuncCallback(Func<int> callback);
         void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
         void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback);

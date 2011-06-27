@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Castle.DynamicProxy;
+using System.Reflection;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Registration;
 
@@ -21,6 +21,11 @@ namespace Messageless
 
         protected void replaceCallbacksWithTokens(IMessage msg)
         {
+            foreach (var callback in msg.Arguments.OfType<Delegate>())
+            {
+                assertIsValid(callback.Method);
+            }
+
             for (var i = 0; i < msg.Arguments.Length; i++)
             {
                 var callback = msg.Arguments[i] as Delegate;
@@ -39,15 +44,15 @@ namespace Messageless
             return token;
         }
 
-        protected void assertIsValid(IInvocation invocation)
+        protected void assertIsValid(MethodInfo method)
         {
-            var hasReturnValue = invocation.Method.ReturnType != typeof (void);
+            var hasReturnValue = method.ReturnType != typeof (void);
             if (hasReturnValue)
-                throw new InvalidOperationException("Tried to call a method that returns a value on a proxy. ");
+                throw new InvalidOperationException("Methods or delegates with return value are not supported.");
 
-            var hasOutParams = invocation.Method.GetParameters().Any(pi => pi.IsOut);
+            var hasOutParams = method.GetParameters().Any(parameter => parameter.IsOut);
             if (hasOutParams)
-                throw new InvalidOperationException("Tried to call a method with out-parameters on a proxy. ");
+                throw new InvalidOperationException("Methods or delegates with out parameters are not supported. ");
         }
     }
 }

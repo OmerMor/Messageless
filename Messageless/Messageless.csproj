@@ -83,6 +83,7 @@
     <Compile Include="Context.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageHandler.cs" />
+    <Compile Include="InProcTransport.cs" />
     <Compile Include="InvocationMessage.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="ITransport.cs" />

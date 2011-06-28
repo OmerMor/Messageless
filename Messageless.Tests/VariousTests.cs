@@ -3,6 +3,9 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Castle.Facilities.Startable;
+using Castle.MicroKernel;
+using Castle.MicroKernel.Facilities;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using FluentAssertions;
@@ -10,6 +13,31 @@ using NUnit.Framework;
 
 namespace Messageless.Tests
 {
+    public class MessagelessTestFacility : AbstractFacility
+    {
+        private string m_path;
+
+        protected override void Init()
+        {
+            Kernel.AddFacility<StartableFacility>();
+            Kernel.Register(
+                Component.For<IMessageHandler>().ImplementedBy<MessageHandler>().Start(),
+                Component.For<InvocationInterceptor>().LifeStyle.Transient,
+                Component.For<ISerializer>().ImplementedBy<BinarySerializer>(),
+                Component.For<ITransport>().ImplementedBy<InProcTransport>().OnCreate(initTransport));
+        }
+
+        private void initTransport(IKernel kernel, ITransport transport)
+        {
+            transport.Init(m_path);
+        }
+
+        public void Init(string path)
+        {
+            m_path = path;
+        }
+    }
+
     public class VariousTests
     {
         private IWindsorContainer m_localContainer;
@@ -22,8 +50,10 @@ namespace Messageless.Tests
         [SetUp]
         public void SetUp()
         {
-            m_localContainer = new WindsorContainer().IntegrateMessageless(LOCAL_ADDR);
-            m_remoteContainer = new WindsorContainer().IntegrateMessageless(REMOTE_ADDR);
+            m_localContainer = new WindsorContainer();//.IntegrateMessageless(LOCAL_ADDR);
+            m_remoteContainer = new WindsorContainer();//.IntegrateMessageless(REMOTE_ADDR);
+            m_localContainer.AddFacility<MessagelessTestFacility>(facility => facility.Init(LOCAL_ADDR));
+            m_remoteContainer.AddFacility<MessagelessTestFacility>(facility => facility.Init(REMOTE_ADDR));
         }
         [TearDown]
         public void TearDown()
@@ -463,7 +493,7 @@ namespace Messageless.Tests
             m_localContainer.Register(Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY));
 
             var service = m_localContainer.ResolveRemoteService<IService>(@".\private$\tmp");
-            var destinationTransport = new MsmqTransport();
+            var destinationTransport = new InProcTransport();
             destinationTransport.Init(@".\private$\tmp");
 
             // act

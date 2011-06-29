@@ -522,6 +522,11 @@ namespace Messageless.Tests
             // nothing is thrown...
         }
 
+    }
+
+    [TestFixture("MSMQ")]
+    public class MsmqTransportTests
+    {
         [Test]
         public void Transport_should_work()
         {
@@ -530,7 +535,7 @@ namespace Messageless.Tests
             {
                 transport.Init(queueName);
 
-                var payload = new byte[] {1, 2, 3, 4, 5, 6, 6, 6};
+                var payload = new byte[] { 1, 2, 3, 4, 5, 6, 6, 6 };
                 var firstMsg = transport.Where(message => message.Payload.SequenceEqual(payload)).Take(1);
 
                 const string key = "key";
@@ -543,7 +548,6 @@ namespace Messageless.Tests
             }
         }
     }
-
     public class Service : IService
     {
         #region Implementation of IService

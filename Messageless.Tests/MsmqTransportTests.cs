@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace Messageless.Tests
 {
-    [TestFixture("MSMQ")]
+    [Category("MSMQ")]
     public class MsmqTransportTests
     {
         [Test]
@@ -18,7 +18,7 @@ namespace Messageless.Tests
                 transport.Init(queueName);
 
                 var payload = new byte[] { 1, 2, 3, 4, 5, 6, 6, 6 };
-                var firstMsg = transport.Where(message => Enumerable.SequenceEqual(message.Payload, payload)).Take(1);
+                var firstMsg = transport.Where(message => message.Payload.SequenceEqual(payload)).Take(1);
 
                 const string key = "key";
                 transport.OnNext(new TransportMessage(payload, queueName, key));

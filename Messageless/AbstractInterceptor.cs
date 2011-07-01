@@ -21,19 +21,15 @@ namespace Messageless
 
         protected void replaceCallbacksWithTokens(IMessage msg)
         {
-            foreach (var callback in msg.Arguments.OfType<Delegate>())
-            {
-                assertIsValid(callback.Method);
-            }
+            msg.Arguments
+                .OfType<Delegate>()
+                .Select(callback => callback.Method)
+                .ForEach(assertIsValid);
 
-            for (var i = 0; i < msg.Arguments.Length; i++)
-            {
-                var callback = msg.Arguments[i] as Delegate;
-                if (callback == null) continue;
-
-                var token = storeCallback(callback);
-                msg.Arguments[i] = token;
-            }
+            msg.Arguments
+                .Select((argument, index) => new {callback = argument as Delegate, index})
+                .Where(t => t.callback != null)
+                .ForEach(t => msg.Arguments[t.index] = storeCallback(t.callback));
         }
 
         private Guid storeCallback(Delegate callback)

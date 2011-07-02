@@ -5,13 +5,12 @@ namespace Messageless
     [Serializable]
     public class Context
     {
-        public Guid Token { get; set; }
-        public string Path { get; set; }
+        public string RecipientPath { get; set; }
+        public string RecipientKey { get; set; }
+        public string SenderPath { get; set; }
 
-        public Context(Guid token, string path)
-        {
-            Token = token;
-            Path = path;
-        }
+        public TimeSpan TimeOut { get; set; }
+
+        public bool CallbackTimedOut { get; set; }
     }
 }

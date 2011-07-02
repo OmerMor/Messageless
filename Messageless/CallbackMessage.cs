@@ -4,7 +4,7 @@ using System.Reflection;
 namespace Messageless
 {
     [Serializable]
-    public class CallbackMessage : IMessage
+    public class CallbackMessage : IMessage, ITransportAware
     {
         public Context Context { get; set; }
         public Type DelegateType { get; set; }
@@ -20,6 +20,11 @@ namespace Messageless
             Context = context;
             DelegateType = delegateType;
             Arguments = arguments;
+        }
+
+        public void SetTransportMessage(TransportMessage transportMessage)
+        {
+            Context.SenderPath = transportMessage.SenderPath;
         }
     }
 }

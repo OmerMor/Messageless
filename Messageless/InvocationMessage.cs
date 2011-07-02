@@ -5,20 +5,28 @@ using Castle.DynamicProxy;
 namespace Messageless
 {
     [Serializable]
-    public class InvocationMessage : IMessage
+    public class InvocationMessage : IMessage, ITransportAware
     {
+        public Context Context { get; set; }
         public MethodInfo Method { get; set; }
         public object[] Arguments { get; set; }
 
-        public InvocationMessage(IInvocation invocation)
-            : this(invocation.Method, invocation.Arguments)
+        public InvocationMessage(Context context, IInvocation invocation)
+            : this(context, invocation.Method, invocation.Arguments)
         {
         }
 
-        public InvocationMessage(MethodInfo method, object[] arguments)
+        public InvocationMessage(Context context, MethodInfo method, object[] arguments)
         {
+            Context = context;
             Method = method;
             Arguments = arguments;
         }
+
+        public void SetTransportMessage(TransportMessage transportMessage)
+        {
+            Context.SenderPath = transportMessage.SenderPath;
+        }
+
     }
 }

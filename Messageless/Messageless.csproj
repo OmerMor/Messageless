@@ -91,6 +91,7 @@
     <Compile Include="ISerializer.cs" />
     <Compile Include="ITransport.cs" />
     <Compile Include="MessageHandler.cs" />
+    <Compile Include="MessagelessContext.cs" />
     <Compile Include="MessagelessFacility.cs" />
     <Compile Include="InvocationInterceptor.cs" />
     <Compile Include="MsmqTransport.cs" />

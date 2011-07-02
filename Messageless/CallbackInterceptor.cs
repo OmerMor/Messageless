@@ -8,8 +8,8 @@ namespace Messageless
         private readonly Context m_context;
         private readonly Type m_delegateType;
 
-        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer, IKernel kernel)
-            : base(transport, kernel, serializer)
+        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer, IKernel kernel, IMessageHandler handler)
+            : base(transport, kernel, serializer, handler)
         {
             m_context = context;
             m_delegateType = delegateType;
@@ -68,7 +68,7 @@ namespace Messageless
             var msg = new CallbackMessage(m_context, m_delegateType, args);
             replaceCallbacksWithTokens(msg);
             var payload = m_serializer.Serialize(msg);
-            var transportMessage = new TransportMessage(payload, m_context.Path, m_context.Token.ToString());
+            var transportMessage = new TransportMessage(payload, m_context.RecipientPath);
             m_transport.OnNext(transportMessage);
         }
     }

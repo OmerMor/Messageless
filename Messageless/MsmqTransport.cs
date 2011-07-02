@@ -10,12 +10,12 @@ namespace Messageless
     {
         private MessageQueue m_messageQueue;
         private IObservable<TransportMessage> m_msgs;
-        private string m_localPath;
+        public string LocalPath { get; private set; }
 
         public void Init(string path)
         {
-            m_localPath = path;
-            m_messageQueue = getIncomingQueue(m_localPath);
+            LocalPath = path;
+            m_messageQueue = getIncomingQueue(LocalPath);
             var receiveAsync = Observable.FromAsyncPattern<Message>(
                 (cb,obj) => m_messageQueue.BeginReceive(MessageQueue.InfiniteTimeout, obj, cb), 
                 m_messageQueue.EndReceive);
@@ -42,11 +42,19 @@ namespace Messageless
             return queue;
         }
 
+        public void Schedule(TransportMessage value, TimeSpan delay)
+        {
+            Observable
+                .Return(value)
+                .Delay(delay)
+                .Subscribe(this);
+        }
+        
         public void OnNext(TransportMessage value)
         {
-            using (var mq = getOutgoingQueue(value.Path))
+            using (var mq = getOutgoingQueue(value.RecipientPath))
             {
-                value.SenderPath = m_localPath;
+                value.SenderPath = LocalPath;
                 mq.Send(value);
             }
         }

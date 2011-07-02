@@ -20,8 +20,7 @@ namespace Messageless.Tests
                 var payload = new byte[] { 1, 2, 3, 4, 5, 6, 6, 6 };
                 var firstMsg = transport.Where(message => message.Payload.SequenceEqual(payload)).Take(1);
 
-                const string key = "key";
-                transport.OnNext(new TransportMessage(payload, queueName, key));
+                transport.OnNext(new TransportMessage(payload, queueName));
 
                 var msgReceived = firstMsg
                     .Timeout(TimeSpan.FromSeconds(1))

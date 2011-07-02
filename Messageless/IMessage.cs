@@ -6,5 +6,6 @@ namespace Messageless
     {
         object[] Arguments { get; }
         MethodInfo Method { get; }
+        Context Context { get; set; }
     }
 }

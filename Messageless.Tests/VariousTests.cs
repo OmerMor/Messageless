@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using FluentAssertions;
@@ -383,6 +385,52 @@ namespace Messageless.Tests
         }
 
         [Test]
+        public void Timeout_test()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+
+            var result = new WaitableValue<bool>();
+            Action<int, int, Action<int>> ignoreCallback = (x, y, cb) => { };
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action(ignoreCallback);
+
+            // act
+            MessagelessContext.Execute(
+                ctx => proxy.Add(111, 222, i =>
+                {
+                    result.Value = MessagelessContext.CurrentContext.CallbackTimedOut;
+                }),
+                timeout: TimeSpan.FromSeconds(0.5));
+            
+
+/*
+            using (MessagelessContext.TimeOutIn(TimeSpan.FromSeconds(1)))
+            {
+                proxy.Add(111, 222, i =>
+                {
+                    result.Value = MessagelessContext.CallbackTimedOut;
+                });
+            }
+*/
+
+            // assert
+            var timeOutCalled = result.WaitOne(TimeSpan.FromSeconds(1));
+            timeOutCalled.Should().BeTrue();
+
+            result.Value.Should().BeTrue();
+        }
+
+        [Test]
         public void Callback_should_be_stored_for_single_invocation_only()
         {
             // arrange
@@ -435,7 +483,7 @@ namespace Messageless.Tests
 
             // act
             var transport = m_localContainer.Resolve<ITransport>();
-            var poisonMsg = new TransportMessage(new byte[] {1, 2, 3}, LOCAL_ADDR, key: "poison");
+            var poisonMsg = new TransportMessage(new byte[] {1, 2, 3}, LOCAL_ADDR);
             transport.OnNext(poisonMsg);
             transport.OnNext(poisonMsg);
 

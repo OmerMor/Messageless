@@ -27,7 +27,8 @@ namespace Messageless.Tests
         {
             m_localContainer = new WindsorContainer(); //.IntegrateMessageless(LOCAL_ADDR);
             m_remoteContainer = new WindsorContainer(); //.IntegrateMessageless(REMOTE_ADDR);
-            m_localContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(facility => facility.Init(LOCAL_ADDR));
+            m_localContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
+                facility => facility.Init(LOCAL_ADDR));
             m_remoteContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
                 facility => facility.Init(REMOTE_ADDR));
             m_service = MockRepository.GenerateStub<IService>();
@@ -91,6 +92,33 @@ namespace Messageless.Tests
 
             // assert
             action.ShouldNotThrow();
+        }
+
+        [Test]
+        public void Generic_callback_resolution()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
+            var signal = new AutoResetEvent(false);
+            m_service.Stub(s => s.MethodWithGenericCallback<Action<Action<Derived>>>(null))
+                .IgnoreArguments()
+                .Call().Action<Action<Action<Action<Derived>>>>(cb1 => cb1(cb2 => cb2(null)));
+
+            // act
+            Action<Action<Action<Base>>> localCb = remoteCbProxy => remoteCbProxy(x => signal.Set());
+            proxy.MethodWithGenericCallback<Action<Action<Derived>>>(localCb);
+
+            // assert
+            var callbackCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
+            callbackCalled.Should().BeTrue();
         }
 
         [Test]
@@ -355,6 +383,42 @@ namespace Messageless.Tests
         }
 
         [Test]
+        public void Callback_should_be_stored_for_single_invocation_only()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+
+            var signal = new AutoResetEvent(false);
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action((int x, int y, Action<int> cb) =>
+                {
+                    cb(x + y); 
+                    cb(x + y);
+                });
+            var counter = 0;
+            // act
+            proxy.Add(111, 222, i =>
+            {
+                var count = Interlocked.Increment(ref counter);
+                if (count == 2)
+                    signal.Set();
+            });
+
+            // assert
+            var methodWasCalledTwice = signal.WaitOne(TimeSpan.FromSeconds(1));
+            methodWasCalledTwice.Should().BeFalse();
+        }
+
+        [Test]
         public void Poison_message_in_local_queue_should_not_stop_handler()
         {
             // arrange
@@ -518,5 +582,13 @@ namespace Messageless.Tests
             // assert
             // nothing is thrown...
         }
+    }
+
+    public class Base
+    {
+    }
+
+    public class Derived : Base
+    {
     }
 }

@@ -14,5 +14,6 @@ namespace Messageless.Tests
         void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
         void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback);
         void MethodWithParameterlessCallback(Action callback);
+        void MethodWithGenericCallback<T>(Action<T> callback);
     }
 }

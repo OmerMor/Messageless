@@ -1,46 +1,22 @@
 ﻿using System;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Castle.Facilities.Startable;
-using Castle.MicroKernel;
-using Castle.MicroKernel.Facilities;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using FluentAssertions;
 using NUnit.Framework;
+using Rhino.Mocks;
 
 namespace Messageless.Tests
 {
-    public class MessagelessTestFacility : AbstractFacility
-    {
-        private string m_path;
-
-        protected override void Init()
-        {
-            Kernel.AddFacility<StartableFacility>();
-            Kernel.Register(
-                Component.For<IMessageHandler>().ImplementedBy<MessageHandler>().Start(),
-                Component.For<InvocationInterceptor>().LifeStyle.Transient,
-                Component.For<ISerializer>().ImplementedBy<BinarySerializer>(),
-                Component.For<ITransport>().ImplementedBy<InProcTransport>().OnCreate(initTransport));
-        }
-
-        private void initTransport(IKernel kernel, ITransport transport)
-        {
-            transport.Init(m_path);
-        }
-
-        public void Init(string path)
-        {
-            m_path = path;
-        }
-    }
-
+    //[TestFixture(typeof(MsmqTransport), Category = "MSMQ")]
+    //[TestFixture(typeof(InProcTransport))]
+    //public class VariousTests<TTransport> where TTransport : ITransport, new()
     public class VariousTests
     {
         private IWindsorContainer m_localContainer;
         private IWindsorContainer m_remoteContainer;
+        private IService m_service;
         private const string REMOTE_ADDR = @".\private$\remote";
         private const string LOCAL_ADDR = @".\private$\local";
         private const string SERVICE_KEY = "test-service";
@@ -49,11 +25,14 @@ namespace Messageless.Tests
         [SetUp]
         public void SetUp()
         {
-            m_localContainer = new WindsorContainer();//.IntegrateMessageless(LOCAL_ADDR);
-            m_remoteContainer = new WindsorContainer();//.IntegrateMessageless(REMOTE_ADDR);
-            m_localContainer.AddFacility<MessagelessTestFacility>(facility => facility.Init(LOCAL_ADDR));
-            m_remoteContainer.AddFacility<MessagelessTestFacility>(facility => facility.Init(REMOTE_ADDR));
+            m_localContainer = new WindsorContainer(); //.IntegrateMessageless(LOCAL_ADDR);
+            m_remoteContainer = new WindsorContainer(); //.IntegrateMessageless(REMOTE_ADDR);
+            m_localContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(facility => facility.Init(LOCAL_ADDR));
+            m_remoteContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
+                facility => facility.Init(REMOTE_ADDR));
+            m_service = MockRepository.GenerateStub<IService>();
         }
+
         [TearDown]
         public void TearDown()
         {
@@ -72,7 +51,7 @@ namespace Messageless.Tests
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
 
             // act
-            Action action = () => proxy.GetReturnValue();
+            var action = proxy.Invoking(p => p.GetReturnValue());
 
             // assert
             action.ShouldThrow<InvalidOperationException>();
@@ -90,7 +69,7 @@ namespace Messageless.Tests
 
             // act
             object param;
-            Action action = () => proxy.MethodWithOutParams(out param);
+            var action = proxy.Invoking(p => p.MethodWithOutParams(out param));
 
             // assert
             action.ShouldThrow<InvalidOperationException>();
@@ -108,7 +87,7 @@ namespace Messageless.Tests
 
             // act
             object param = null;
-            Action action = () => proxy.MethodWithRefParams(ref param);
+            var action = proxy.Invoking(p => p.MethodWithRefParams(ref param));
 
             // assert
             action.ShouldNotThrow();
@@ -123,17 +102,21 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
-            var service = m_remoteContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().MethodWithFuncCallbackImpl = func => { signal.Set(); func(); };
+            m_service.Stub(s => s.MethodWithFuncCallback(null))
+                .IgnoreArguments()
+                .Call().Action<Func<int>>(func =>
+                {
+                    signal.Set();
+                    func();
+                });
 
             // act
-            Action action = () => proxy.MethodWithFuncCallback(() => 0);
-            // ReSharper restore EmptyGeneralCatchClause
+            var action = proxy.Invoking(p => p.MethodWithFuncCallback(() => 0));
 
             // assert
             action.ShouldThrow<InvalidOperationException>();
@@ -148,21 +131,22 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
-            var service = m_remoteContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().GetReturnValueImpl = () => signal.Set();
+            m_service.Stub(s => s.GetReturnValue()).Call().Func(signal.Set);
 
             // act
             try
             {
                 proxy.GetReturnValue();
             }
-            // ReSharper disable EmptyGeneralCatchClause
-            catch { }
+                // ReSharper disable EmptyGeneralCatchClause
+            catch
+            {
+            }
             // ReSharper restore EmptyGeneralCatchClause
 
             // assert
@@ -179,14 +163,13 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             var signal = new AutoResetEvent(false);
-            service.As<Service>().FooImpl = () => signal.Set();
+            m_service.Stub(s => s.Foo()).Call().Action(() => signal.Set());
 
             // act
             proxy.Foo();
@@ -195,6 +178,7 @@ namespace Messageless.Tests
             var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
             fooCalled.Should().BeTrue();
         }
+
         [Test]
         public void Calling_generic_method_on_proxy_should_be_propogated_to_remote_service()
         {
@@ -204,15 +188,16 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             var waitableValue = new WaitableValue<int>();
-            service.As<Service>().GenericMethodImpl = arg => { waitableValue.Value = (int) arg; };
             const int magicNumber = 666;
+            m_service.Stub(s => s.GenericMethod(magicNumber))
+                .Call().Action<int>(arg => { waitableValue.Value = arg; });
+
             // act
             proxy.GenericMethod(magicNumber);
 
@@ -231,14 +216,15 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             const int magicNumber = 666;
-            service.As<Service>().MethodWithNestedCallbackImpl = cb1 => cb1(cb2 => cb2(magicNumber));
+            m_service.Stub(s => s.MethodWithNestedCallback(null))
+                .IgnoreArguments()
+                .Call().Action<Action<Action<Action<int>>>>(cb1 => cb1(cb2 => cb2(magicNumber)));
             var result = new WaitableValue<int>();
 
             // act
@@ -250,6 +236,7 @@ namespace Messageless.Tests
 
             result.Value.Should().Be(magicNumber);
         }
+
         [Test]
         public void Generic_nested_callbacks_should_be_able_to_round_trip()
         {
@@ -259,14 +246,15 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             const int magicNumber = 666;
-            service.As<Service>().GenericMethodWithNestedCallbackImpl = (o,cb1) => cb1(cb2 => ((Action<int>)cb2)((int) o));
+            m_service.Stub(s => s.GenericMethodWithNestedCallback(magicNumber, null))
+                .IgnoreArguments()
+                .Call().Action((int x, Action<Action<Action<int>>> cb1) => cb1(cb2 => cb2(x)));
             var result = new WaitableValue<int>();
 
             // act
@@ -288,14 +276,15 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             var isNullCallback = new WaitableValue<bool>();
-            service.As<Service>().AddImpl = (x, y, cb) => isNullCallback.Value = (cb == null);
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action((int x, int y, Action<int> cb) => isNullCallback.Value = (cb == null));
 
             // act
             proxy.Add(111, 222, null);
@@ -306,6 +295,7 @@ namespace Messageless.Tests
 
             isNullCallback.Value.Should().BeTrue();
         }
+
         [Test]
         public void Calling_method_with_parameterless_callback_on_proxy_should_not_fail()
         {
@@ -315,15 +305,16 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             var result = new WaitableValue<int>();
             const int magicNumber = 666;
-            service.As<Service>().MethodWithParameterlessCallbackImpl = cb => cb();
+            m_service.Stub(s => s.MethodWithParameterlessCallback(null))
+                .IgnoreArguments()
+                .Call().Action<Action>(cb => cb());
 
             // act
             proxy.MethodWithParameterlessCallback(() => result.Value = magicNumber);
@@ -333,6 +324,7 @@ namespace Messageless.Tests
             callbackWasCalled.Should().BeTrue();
             result.Value.Should().Be(magicNumber);
         }
+
         [Test]
         public void Calling_method_with_callback_on_proxy_should_not_fail()
         {
@@ -342,14 +334,15 @@ namespace Messageless.Tests
                 );
 
             m_remoteContainer.Register(
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>();
-            var service = m_remoteContainer.Resolve<IService>();
 
             var result = new WaitableValue<int>();
-            service.As<Service>().AddImpl = (x, y, cb) => cb(x + y);
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action((int x, int y, Action<int> cb) => cb(x + y));
 
             // act
             proxy.Add(111, 222, i => result.Value = i);
@@ -367,17 +360,18 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(LOCAL_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
-            var service = m_localContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().FooImpl = () => signal.Set();
+            m_service.Stub(s => s.Foo())
+                .IgnoreArguments()
+                .Call().Action(() => signal.Set());
 
             // act
             var transport = m_localContainer.Resolve<ITransport>();
-            var poisonMsg = new TransportMessage(new byte[] { 1, 2, 3 }, LOCAL_ADDR, key:"poison");
+            var poisonMsg = new TransportMessage(new byte[] {1, 2, 3}, LOCAL_ADDR, key: "poison");
             transport.OnNext(poisonMsg);
             transport.OnNext(poisonMsg);
 
@@ -387,19 +381,21 @@ namespace Messageless.Tests
             var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
             fooCalled.Should().BeTrue();
         }
+
         [Test]
         public void Calling_method_on_proxy_should_be_propogated_to_remote_service()
         {
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(LOCAL_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
-            var service = m_localContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().FooImpl = () => signal.Set();
+            m_service.Stub(s => s.Foo())
+                .IgnoreArguments()
+                .Call().Action(() => signal.Set());
 
             // act
             proxy.Foo();
@@ -415,14 +411,14 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(LOCAL_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             // act
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
 
             // assert
-            proxy.GetType().Should().NotBe(typeof(Service));
+            proxy.Should().NotBe(m_service);
         }
 
         [Test]
@@ -431,14 +427,14 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(LOCAL_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             // act
             var service = m_localContainer.Resolve<IService>(SERVICE_KEY);
 
             // assert
-            service.Should().BeOfType<Service>();
+            service.Should().Be(m_service);
         }
 
         [Test]
@@ -447,13 +443,14 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
 
             var proxy = m_localContainer.Resolve<IService>(PROXY_KEY);
-            var service = m_localContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().FooImpl = () => signal.Set();
+            m_service.Stub(s => s.Foo())
+                .IgnoreArguments()
+                .Call().Action(() => signal.Set());
 
             // act
             proxy.Foo();
@@ -469,18 +466,19 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(
                 Component.For<IService>().LifeStyle.Transient.At(LOCAL_ADDR, SERVICE_KEY, PROXY_KEY),
-                Component.For<IService>().ImplementedBy<Service>().Named(SERVICE_KEY)
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
                 );
-
             var proxy = m_localContainer.ResolveRemoteService<IService>(REMOTE_ADDR);
-            var service = m_localContainer.Resolve<IService>(SERVICE_KEY);
             var signal = new AutoResetEvent(false);
-            service.As<Service>().FooImpl = () => signal.Set();
+            m_service.Stub(s => s.Foo())
+                .IgnoreArguments()
+                .Call().Action(() => signal.Set());
 
             // act
             proxy.Foo();
 
             // assert
+            //signal.AssertWasCalled(@event => @event.WaitOne(), opt => opt.Constraints(new ));
             var fooCalled = signal.WaitOne(TimeSpan.FromSeconds(1));
             fooCalled.Should().BeFalse();
         }
@@ -491,12 +489,12 @@ namespace Messageless.Tests
             // arrange
             m_localContainer.Register(Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY));
 
-            var service = m_localContainer.ResolveRemoteService<IService>(@".\private$\tmp");
-            var destinationTransport = new InProcTransport();
+            var proxy = m_localContainer.ResolveRemoteService<IService>(@".\private$\tmp");
+            ITransport destinationTransport = new InProcTransport();
             destinationTransport.Init(@".\private$\tmp");
 
             // act
-            service.Foo();
+            proxy.Foo();
 
             // assert
             var msgReceived = destinationTransport
@@ -513,132 +511,12 @@ namespace Messageless.Tests
             m_localContainer.Register(Component.For<IService>().At(REMOTE_ADDR, SERVICE_KEY));
 
             var resolve = m_localContainer.Resolve<IService>();
-            
+
             // act
             resolve.Foo();
 
             // assert
             // nothing is thrown...
-        }
-
-    }
-
-    public class Service : IService
-    {
-        #region Implementation of IService
-
-        public Service()
-        {
-            FooImpl = delegate { };
-            GetReturnValueImpl = () => null;
-            AddImpl = delegate { };
-            MethodWithNestedCallbackImpl = delegate { };
-            MethodWithParameterlessCallbackImpl = delegate { };
-            GenericMethodImpl = delegate { };
-        }
-
-        public void Foo()
-        {
-            Console.WriteLine("Service.Foo() called");
-            FooImpl();
-        }
-
-        public void GenericMethod<T>(T arg)
-        {
-            Console.WriteLine("Service.GenericMethod<T>() called");
-            GenericMethodImpl(arg);
-        }
-
-        public Action FooImpl { get; set; }
-
-        public object GetReturnValue()
-        {
-            Console.WriteLine("Service.GetReturnValue() called");
-            return GetReturnValueImpl();
-        }
-
-        public void MethodWithOutParams(out object param)
-        {
-            Console.WriteLine("Service.MethodWithOutParams() called");
-            param = GetReturnValueImpl();
-        }
-
-        // ReSharper disable RedundantAssignment
-        public void MethodWithRefParams(ref object param)
-        // ReSharper restore RedundantAssignment
-        {
-            Console.WriteLine("Service.MethodWithRefParams() called");
-            param = GetReturnValueImpl();
-        }
-
-        public void Add(int x, int y, Action<int> callback)
-        {
-            Console.WriteLine("Service.Add() called");
-            AddImpl(x, y, callback);
-        }
-
-        public void MethodWithFuncCallback(Func<int> callback)
-        {
-            Console.WriteLine("Service.MethodWithFuncCallback() called");
-            MethodWithFuncCallbackImpl(callback);
-        }
-
-        public void MethodWithNestedCallback(Action<Action<Action<int>>> callback)
-        {
-            Console.WriteLine("Service.MethodWithNestedCallback() called");
-            MethodWithNestedCallbackImpl(callback);
-        }
-
-        public void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback)
-        {
-            Console.WriteLine("Service.GenericMethodWithNestedCallback() called");
-            GenericMethodWithNestedCallbackImpl(value, callback);
-        }
-
-        public void MethodWithParameterlessCallback(Action callback)
-        {
-            Console.WriteLine("Service.MethodWithParameterlessCallback() called");
-            MethodWithParameterlessCallbackImpl(callback);
-        }
-
-        public Func<object> GetReturnValueImpl { get; set; }
-        public Action<int,int,Action<int>> AddImpl { get; set; }
-        public Action<Action> MethodWithParameterlessCallbackImpl { get; set; }
-        public Action<Func<int>> MethodWithFuncCallbackImpl { get; set; }
-        public Action<Action<Action<Action<int>>>> MethodWithNestedCallbackImpl { get; set; }
-        public Action<object,Action<Action<Delegate>>> GenericMethodWithNestedCallbackImpl { get; set; }
-        public Action<object> GenericMethodImpl { get; set; }
-
-        #endregion
-    }
-
-    public interface IService
-    {
-        void Foo();
-        void GenericMethod<T>(T arg);
-        object GetReturnValue();
-        void MethodWithOutParams(out object param);
-        void MethodWithRefParams(ref object param);
-        void Add(int x, int y, Action<int> callback);
-        void MethodWithFuncCallback(Func<int> callback);
-        void MethodWithNestedCallback(Action<Action<Action<int>>> callback);
-        void GenericMethodWithNestedCallback<T>(T value, Action<Action<Action<T>>> callback);
-        void MethodWithParameterlessCallback(Action callback);
-    }
-
-    public class WaitableValue<T>
-    {
-        private readonly TaskCompletionSource<T> m_source = new TaskCompletionSource<T>();
-
-        public T Value
-        {
-            get { return m_source.Task.Result; }
-            set { m_source.SetResult(value); }
-        }
-
-        public bool WaitOne(TimeSpan timeout)
-        {
-            return m_source.Task.Wait(timeout);
         }
     }
 }

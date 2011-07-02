@@ -1,16 +1,12 @@
+using Castle.Facilities.Startable;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Facilities;
 using Castle.MicroKernel.Registration;
-using Castle.Facilities.Startable;
 
-namespace Messageless
+namespace Messageless.Tests
 {
-    public interface IMessagelessFacility : IFacility
-    {
-        void Init(string path);
-    }
-
-    public class MessagelessFacility : AbstractFacility, IMessagelessFacility
+    public class MessagelessTestFacility<TTransport> : AbstractFacility, IMessagelessFacility 
+        where TTransport : ITransport
     {
         private string m_path;
 
@@ -21,7 +17,7 @@ namespace Messageless
                 Component.For<IMessageHandler>().ImplementedBy<MessageHandler>().Start(),
                 Component.For<InvocationInterceptor>().LifeStyle.Transient,
                 Component.For<ISerializer>().ImplementedBy<BinarySerializer>(),
-                Component.For<ITransport>().ImplementedBy<MsmqTransport>().OnCreate(initTransport));
+                Component.For<ITransport>().ImplementedBy<TTransport>().OnCreate(initTransport));
         }
 
         private void initTransport(IKernel kernel, ITransport transport)

@@ -96,11 +96,13 @@
     <Compile Include="InvocationInterceptor.cs" />
     <Compile Include="MsmqTransport.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimeoutManager.cs" />
     <Compile Include="TransportMessage.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WindsorEx.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram.cd" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

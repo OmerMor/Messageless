@@ -17,6 +17,7 @@ namespace Messageless.Tests
                 Component.For<IMessageHandler>().ImplementedBy<MessageHandler>().Start(),
                 Component.For<InvocationInterceptor>().LifeStyle.Transient,
                 Component.For<ISerializer>().ImplementedBy<BinarySerializer>(),
+                Component.For<TimeoutManager>(),
                 Component.For<ITransport>().ImplementedBy<TTransport>().OnCreate(initTransport));
         }
 

@@ -14,12 +14,14 @@ namespace Messageless
         private readonly ISerializer m_serializer;
         private readonly ITransport m_transport;
         private IDisposable m_subscription;
+        private TimeoutManager m_timeoutManager;
 
-        public MessageHandler(IKernel kernel, ITransport transport, ISerializer serializer)
+        public MessageHandler(IKernel kernel, ITransport transport, ISerializer serializer, TimeoutManager timeoutManager)
         {
             m_kernel = kernel;
             m_transport = transport;
             m_serializer = serializer;
+            m_timeoutManager = timeoutManager;
         }
 
         public void Handle(TransportMessage message)
@@ -58,13 +60,21 @@ namespace Messageless
 
         public void Handle(CallbackMessage msg)
         {
-            Console.WriteLine("resolving " + msg.Context.RecipientKey);
-            var callback = m_kernel.Resolve<Delegate>(msg.Context.RecipientKey);
+            var token = msg.Context.RecipientKey;
+            try
+            {
+                Console.WriteLine("resolving " + token);
+                var callback = m_kernel.Resolve<Delegate>(token);
 
-            replaceTokensWithCallbackProxies(msg, msg.Context.SenderPath);
-            m_kernel.RemoveComponent(msg.Context.RecipientKey);
-            Console.WriteLine("removed " + msg.Context.RecipientKey);
-            MessagelessContext.Execute(context => callback.DynamicInvoke(msg.Arguments), msg.Context);
+                replaceTokensWithCallbackProxies(msg, msg.Context.SenderPath);
+                m_kernel.RemoveComponent(token);
+                Console.WriteLine("removed " + token);
+                MessagelessContext.Execute(context => callback.DynamicInvoke(msg.Arguments), msg.Context);
+            }
+            finally
+            {
+                m_timeoutManager.DismissTimeoutAction(token);
+            }
         }
 
         private void replaceTokensWithCallbackProxies(IMessage invocation, string senderPath)
@@ -87,7 +97,7 @@ namespace Messageless
         private Delegate tokenToCallbackProxy(string token, Type callbackType, string senderPath)
         {
             var context = new Context{RecipientPath = senderPath, RecipientKey = token};
-            var callbackInterceptor = new CallbackInterceptor(context, callbackType, m_transport, m_serializer, m_kernel, this);
+            var callbackInterceptor = new CallbackInterceptor(context, callbackType, m_transport, m_serializer, m_kernel, m_timeoutManager);
             var callbackMethodInfo = callbackType.GetMethod("Invoke");
             var parameterTypes = callbackMethodInfo.GetParameters()
                 .Select(p => p.ParameterType)

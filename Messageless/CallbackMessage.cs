@@ -19,7 +19,7 @@ namespace Messageless
         {
             Context = context;
             DelegateType = delegateType;
-            Arguments = arguments;
+            Arguments = arguments ?? new object[Method.GetParameters().Length];
         }
 
         public void SetTransportMessage(TransportMessage transportMessage)

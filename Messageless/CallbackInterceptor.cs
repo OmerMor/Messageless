@@ -8,8 +8,8 @@ namespace Messageless
         private readonly Context m_context;
         private readonly Type m_delegateType;
 
-        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer, IKernel kernel, IMessageHandler handler)
-            : base(transport, kernel, serializer, handler)
+        public CallbackInterceptor(Context context, Type delegateType, ITransport transport, ISerializer serializer, IKernel kernel, TimeoutManager timeoutManager)
+            : base(transport, kernel, serializer, timeoutManager)
         {
             m_context = context;
             m_delegateType = delegateType;

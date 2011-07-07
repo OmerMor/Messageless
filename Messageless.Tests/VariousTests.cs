@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using FluentAssertions;
@@ -29,6 +27,7 @@ namespace Messageless.Tests
         {
             m_localContainer = new WindsorContainer(); //.IntegrateMessageless(LOCAL_ADDR);
             m_remoteContainer = new WindsorContainer(); //.IntegrateMessageless(REMOTE_ADDR);
+            InProcTransport.Start();
             m_localContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
                 facility => facility.Init(LOCAL_ADDR));
             m_remoteContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
@@ -385,7 +384,7 @@ namespace Messageless.Tests
         }
 
         [Test]
-        public void Timeout_test()
+        public void Ignoring_a_callback_with_timeout_should_invoke_the_callback_with_timeout_context()
         {
             // arrange
             m_localContainer.Register(
@@ -411,23 +410,98 @@ namespace Messageless.Tests
                     result.Value = MessagelessContext.CurrentContext.CallbackTimedOut;
                 }),
                 timeout: TimeSpan.FromSeconds(0.5));
-            
 
-/*
-            using (MessagelessContext.TimeOutIn(TimeSpan.FromSeconds(1)))
-            {
-                proxy.Add(111, 222, i =>
-                {
-                    result.Value = MessagelessContext.CallbackTimedOut;
-                });
-            }
-*/
 
             // assert
-            var timeOutCalled = result.WaitOne(TimeSpan.FromSeconds(1));
-            timeOutCalled.Should().BeTrue();
+            var calledWithTimeoutContext = result.WaitOne(TimeSpan.FromSeconds(1));
+            calledWithTimeoutContext.Should().BeTrue();
 
             result.Value.Should().BeTrue();
+        }
+        [Test]
+        public void Invocation_of_callback_after_timeout_should_invoke_the_callback_with_timeout_context()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+
+            var timeoutResult = new WaitableValue<bool>();
+            var addResult = new WaitableValue<int>();
+            Action<int, int, Action<int>> delayedCallbackInvocation =
+                (x, y, cb) => Observable.Timer(TimeSpan.FromSeconds(0.6)).Subscribe(_ => cb(x + y));
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action(delayedCallbackInvocation);
+
+            // act
+            MessagelessContext.Execute(
+                ctx => proxy.Add(111, 222, result =>
+                {
+                    if (MessagelessContext.CurrentContext.CallbackTimedOut)
+                        timeoutResult.Value = true;
+                    else
+                        addResult.Value = result;
+                }),
+                timeout: TimeSpan.FromSeconds(0.5));
+
+
+            // assert
+            var calledWithTimeoutContext = timeoutResult.WaitOne(TimeSpan.FromSeconds(1));
+            calledWithTimeoutContext.Should().BeTrue();
+            timeoutResult.Value.Should().BeTrue();
+
+            var calledWithResult = addResult.WaitOne(TimeSpan.FromSeconds(0.5));
+            calledWithResult.Should().BeFalse();
+        }
+
+        [Test]
+        public void Invocation_of_callback_before_timeout_should_not_invoke_the_callback_with_timeout_context()
+        {
+            // arrange
+            m_localContainer.Register(
+                Component.For<IService>().LifeStyle.Transient.At(REMOTE_ADDR, SERVICE_KEY, PROXY_KEY)
+                );
+
+            m_remoteContainer.Register(
+                Component.For<IService>().Instance(m_service).Named(SERVICE_KEY)
+                );
+
+            var proxy = m_localContainer.Resolve<IService>();
+
+            var timeoutResult = new WaitableValue<bool>();
+            var addResult = new WaitableValue<int>();
+            Action<int, int, Action<int>> delayedCallbackInvocation =
+                (x, y, cb) => Observable.Timer(TimeSpan.FromSeconds(0.3)).Subscribe(_ => cb(x + y));
+            m_service.Stub(s => s.Add(0, 0, null))
+                .IgnoreArguments()
+                .Call().Action(delayedCallbackInvocation);
+
+            // act
+            MessagelessContext.Execute(
+                ctx => proxy.Add(111, 222, result =>
+                {
+                    if (MessagelessContext.CurrentContext.CallbackTimedOut)
+                        timeoutResult.Value = true;
+                    else
+                        addResult.Value = result;
+                }),
+                timeout: TimeSpan.FromSeconds(0.5));
+
+
+            // assert
+            var calledWithTimeoutContext = timeoutResult.WaitOne(TimeSpan.FromSeconds(1));
+            calledWithTimeoutContext.Should().BeFalse();
+
+            var calledWithResult = addResult.WaitOne(TimeSpan.FromSeconds(0.1));
+            calledWithResult.Should().BeTrue();
+            addResult.Value.Should().Be(111+222);
         }
 
         [Test]

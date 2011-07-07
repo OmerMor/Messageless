@@ -11,14 +11,14 @@ namespace Messageless
         private ComponentModel m_target;
         private readonly string m_address;
 
-        public InvocationInterceptor(ITransport transport, IKernel kernel, ISerializer serializer, IMessageHandler handler)
-            : this(null, transport, kernel, serializer, handler)
+        public InvocationInterceptor(ITransport transport, IKernel kernel, ISerializer serializer, TimeoutManager timeoutManager)
+            : this(null, transport, kernel, serializer, timeoutManager)
         {
         }
 
         // ReSharper disable MemberCanBePrivate.Global
-        public InvocationInterceptor(string address, ITransport transport, IKernel kernel, ISerializer serializer, IMessageHandler handler)
-            : base(transport, kernel, serializer, handler)
+        public InvocationInterceptor(string address, ITransport transport, IKernel kernel, ISerializer serializer, TimeoutManager timeoutManager)
+            : base(transport, kernel, serializer, timeoutManager)
         // ReSharper restore MemberCanBePrivate.Global
         {
             m_address = address;

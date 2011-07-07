@@ -1,0 +1,200 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Messageless.AbstractInterceptor" Collapsed="true">
+    <Position X="1.5" Y="2.25" Width="1.5" />
+    <AssociationLine Name="m_serializer" Type="Messageless.ISerializer" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="3" Y="2.531" />
+        <Point X="10.25" Y="2.531" />
+        <Point X="10.25" Y="7.5" />
+      </Path>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAMAAAAAAABAAAAAQAAAAAAAAAgAQAAA=</HashCode>
+      <FileName>AbstractInterceptor.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="m_transport" />
+      <Field Name="m_serializer" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Messageless.BinarySerializer" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="9.75" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAAAAAAAAAAAAAAAAAACBAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>BinarySerializer.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.CallbackInterceptor" Collapsed="true">
+    <Position X="2.5" Y="3.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>CAAAAAAAAAAEAAAAAAAAAAAAAAAAAAACAAAAAgAAAAA=</HashCode>
+      <FileName>CallbackInterceptor.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="m_context" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Messageless.CallbackMessage" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="5.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAIAAAAAAggAAAAAAAAAAAAIAAAAAAAAAA=</HashCode>
+      <FileName>CallbackMessage.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Messageless.Context" Collapsed="true">
+    <Position X="6" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAgAAAAAIAAAAAQAAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Context.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Messageless.InProcTransport" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="3.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAACAAAIAAAAAAAAAAGACAAAAAAACEAAAAIA=</HashCode>
+      <FileName>InProcTransport.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.InvocationInterceptor" Collapsed="true">
+    <Position X="0.5" Y="3.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAEAAAAAAAAAAAAAAAAAUAAAAAAAgAAAAA=</HashCode>
+      <FileName>InvocationInterceptor.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.InvocationMessage" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="7.5" Y="4.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAAAAAAAAggAAAAAAAAAAAAIAAAAAAAAAA=</HashCode>
+      <FileName>InvocationMessage.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Messageless.MessageHandler" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="10.5" Y="3.25" Width="1.5" />
+    <AssociationLine Name="m_serializer" Type="Messageless.ISerializer" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="10.938" Y="3.812" />
+        <Point X="10.938" Y="7.5" />
+      </Path>
+    </AssociationLine>
+    <AssociationLine Name="m_transport" Type="Messageless.ITransport" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="10.688" Y="3.812" />
+        <Point X="10.688" Y="7.25" />
+        <Point X="10.333" Y="7.25" Type="JumpStart" />
+        <Point X="10.167" Y="7.25" Type="JumpEnd" />
+        <Point X="6.625" Y="7.25" />
+        <Point X="6.625" Y="8.017" />
+        <Point X="6.25" Y="8.017" />
+      </Path>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAACAAAEgAAIAAABAACAAQAAIAIAAAAAAAAAA=</HashCode>
+      <FileName>MessageHandler.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="m_serializer" />
+      <Field Name="m_transport" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.MessagelessContext" Collapsed="true">
+    <Position X="11.25" Y="5.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAAAgAAAAAAAAQAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>MessagelessContext.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="CurrentContext" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Messageless.MessagelessFacility" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="6.75" Y="0.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAKAAAAAAA=</HashCode>
+      <FileName>MessagelessFacility.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.MsmqTransport" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="5.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAACCAAAIAJAAAAAAAEGACABAAAAACAAAAAAA=</HashCode>
+      <FileName>MsmqTransport.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Messageless.TransportMessage" Collapsed="true">
+    <Position X="7.25" Y="8.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAAAAAAAAAAAQQAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>TransportMessage.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Messageless.Utils" Collapsed="true">
+    <Position X="4.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Utils.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Messageless.WindsorEx" Collapsed="true">
+    <Position X="4.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAIAAAAAAAAAAIAAAACAAAAAAIAAAIAAAAA=</HashCode>
+      <FileName>WindsorEx.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="Messageless.IMessage" Collapsed="true">
+    <Position X="6.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAAAAAAAAAgAAAAAAAAAAAAIAAAAAAAAAA=</HashCode>
+      <FileName>IMessage.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="Context" />
+    </ShowAsAssociation>
+  </Interface>
+  <Interface Name="Messageless.IMessageHandler" Collapsed="true">
+    <Position X="10.5" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAA=</HashCode>
+      <FileName>IMessageHandler.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Messageless.ISerializer" Collapsed="true">
+    <Position X="9.75" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAACBAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ISerializer.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Messageless.ITransport" Collapsed="true">
+    <Position X="4.25" Y="7.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAACAAAAAAA=</HashCode>
+      <FileName>ITransport.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Messageless.ITransportAware" Collapsed="true">
+    <Position X="8" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>MessageHandler.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="Messageless.IMessagelessFacility" Collapsed="true">
+    <Position X="6.75" Y="1.5" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAA=</HashCode>
+      <FileName>MessagelessFacility.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

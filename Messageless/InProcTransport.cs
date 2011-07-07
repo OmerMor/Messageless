@@ -1,17 +1,29 @@
 using System;
 using System.Collections.Concurrent;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 
 namespace Messageless
 {
-    public class InProcTransport : ITransport
+    public class InProcTransport : ITransport, IDisposable
     {
         private static readonly ConcurrentDictionary<string, ISubject<TransportMessage>> s_subjects 
             = new ConcurrentDictionary<string, ISubject<TransportMessage>>();
 
-        public string LocalPath { get; private set; }
+        private readonly EventLoopScheduler m_eventLoopScheduler
+            = new EventLoopScheduler(start => new Thread(start)
+                                              {
+                                                  IsBackground = true,
+                                                  Name = "Transport." + Guid.NewGuid(),
+                                              });
 
+        public string LocalPath { get; private set; }
+        public static void Start()
+        {
+            s_subjects.Clear();
+        }
         public void OnNext(TransportMessage value)
         {
             value.SenderPath = LocalPath;
@@ -39,7 +51,10 @@ namespace Messageless
         public IDisposable Subscribe(IObserver<TransportMessage> observer)
         {
             var subject = getSubject(LocalPath);
-            return subject.Subscribe(observer);
+            return subject
+                .ObserveOn(m_eventLoopScheduler)
+                .Do(msg => Console.WriteLine("transport"))
+                .Subscribe(observer);
         }
 
         private ISubject<TransportMessage> getSubject(string path)
@@ -50,6 +65,11 @@ namespace Messageless
         public void Init(string path)
         {
             LocalPath = path;
+        }
+
+        public void Dispose()
+        {
+            m_eventLoopScheduler.Dispose();
         }
     }
 }

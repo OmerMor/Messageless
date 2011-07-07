@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Reactive;
-using System.Reactive.Linq;
 using System.Reflection;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Registration;
@@ -13,14 +12,14 @@ namespace Messageless
         protected readonly ITransport m_transport;
         private readonly IKernel m_kernel;
         protected readonly ISerializer m_serializer;
-        private readonly IMessageHandler m_handler;
+        private readonly TimeoutManager m_timeoutManager;
 
-        protected AbstractInterceptor(ITransport transport, IKernel kernel, ISerializer serializer, IMessageHandler handler)
+        protected AbstractInterceptor(ITransport transport, IKernel kernel, ISerializer serializer, TimeoutManager timeoutManager)
         {
             m_transport = transport;
             m_kernel = kernel;
             m_serializer = serializer;
-            m_handler = handler;
+            m_timeoutManager = timeoutManager;
         }
 
         protected void replaceCallbacksWithTokens(IMessage msg)
@@ -34,7 +33,6 @@ namespace Messageless
                 .Select((argument, index) => new {callback = argument as Delegate, index})
                 .Where(t => t.callback != null)
                 .ForEach(t => msg.Arguments[t.index] = storeCallback(t.callback));
-            //.ForEach(storeTimeoutAction);
         }
 
         private string storeCallback(Delegate callback)
@@ -42,30 +40,10 @@ namespace Messageless
             var token = Guid.NewGuid().ToString();
             m_kernel.Register(Component.For<Delegate>().Instance(callback).Named(token));
             Console.WriteLine("registered callback " + token);
-            scheduleTimeoutAction(token, callback);
+            m_timeoutManager.ScheduleTimeoutAction(token, callback);
             return token;
         }
 
-        private void scheduleTimeoutAction(string token, Delegate callback)
-        {
-            var ctx = MessagelessContext.CurrentContext;
-            if (ctx == null)
-                return;
-            if (ctx.TimeOut == default(TimeSpan))
-                return;
-            Observable
-                .Timer(ctx.TimeOut)
-                .Select(_ =>
-                {
-                    var context = new Context {RecipientKey = token, TimeOut = ctx.TimeOut, CallbackTimedOut = true};
-                    var callbackMessage = new CallbackMessage(context, callback.GetType(), null);
-                    callbackMessage.Arguments = new object[callbackMessage.Method.GetParameters().Length];
-                    var payload = m_serializer.Serialize(callbackMessage);
-                    var transportMessage = new TransportMessage(payload, m_transport.LocalPath);
-                    return transportMessage;
-                })
-                .Subscribe(m_transport);
-        }
 
         protected static void assertIsValid(MethodInfo method)
         {

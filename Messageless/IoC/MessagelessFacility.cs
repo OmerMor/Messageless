@@ -1,15 +1,13 @@
+using Castle.Facilities.Startable;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Facilities;
 using Castle.MicroKernel.Registration;
-using Castle.Facilities.Startable;
+using Messageless.Messaging;
+using Messageless.Serialization;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.IoC
 {
-    public interface IMessagelessFacility : IFacility
-    {
-        void Init(string path);
-    }
-
     public class MessagelessFacility : AbstractFacility, IMessagelessFacility
     {
         private string m_path;

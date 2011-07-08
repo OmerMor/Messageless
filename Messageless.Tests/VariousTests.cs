@@ -4,6 +4,9 @@ using System.Threading;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using FluentAssertions;
+using Messageless.IoC;
+using Messageless.Messaging;
+using Messageless.Transport;
 using NUnit.Framework;
 using Rhino.Mocks;
 
@@ -27,7 +30,7 @@ namespace Messageless.Tests
         {
             m_localContainer = new WindsorContainer(); //.IntegrateMessageless(LOCAL_ADDR);
             m_remoteContainer = new WindsorContainer(); //.IntegrateMessageless(REMOTE_ADDR);
-            InProcTransport.Start();
+            //InProcTransport.Start();
             m_localContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(
                 facility => facility.Init(LOCAL_ADDR));
             m_remoteContainer.AddFacility<MessagelessTestFacility<InProcTransport>>(

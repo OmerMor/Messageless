@@ -1,7 +1,9 @@
 using System;
 using Castle.MicroKernel;
+using Messageless.Serialization;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public class CallbackInterceptor : AbstractInterceptor
     {

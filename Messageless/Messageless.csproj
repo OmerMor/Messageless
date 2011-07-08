@@ -79,32 +79,36 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AbstractInterceptor.cs" />
-    <Compile Include="BinarySerializer.cs" />
-    <Compile Include="CallbackInterceptor.cs" />
-    <Compile Include="CallbackMessage.cs" />
-    <Compile Include="Context.cs" />
-    <Compile Include="IMessage.cs" />
-    <Compile Include="IMessageHandler.cs" />
-    <Compile Include="InProcTransport.cs" />
-    <Compile Include="InvocationMessage.cs" />
-    <Compile Include="ISerializer.cs" />
-    <Compile Include="ITransport.cs" />
-    <Compile Include="MessageHandler.cs" />
-    <Compile Include="MessagelessContext.cs" />
-    <Compile Include="MessagelessFacility.cs" />
-    <Compile Include="InvocationInterceptor.cs" />
-    <Compile Include="MsmqTransport.cs" />
+    <Compile Include="IoC\IMessagelessFacility.cs" />
+    <Compile Include="IoC\MessagelessFacility.cs" />
+    <Compile Include="IoC\WindsorEx.cs" />
+    <Compile Include="Messaging\AbstractInterceptor.cs" />
+    <Compile Include="Messaging\CallbackInterceptor.cs" />
+    <Compile Include="Messaging\CallbackMessage.cs" />
+    <Compile Include="Messaging\Context.cs" />
+    <Compile Include="Messaging\IMessage.cs" />
+    <Compile Include="Messaging\IMessageHandler.cs" />
+    <Compile Include="Messaging\InvocationInterceptor.cs" />
+    <Compile Include="Messaging\InvocationMessage.cs" />
+    <Compile Include="Messaging\MessageHandler.cs" />
+    <Compile Include="Messaging\MessagelessContext.cs" />
+    <Compile Include="Messaging\TimeoutManager.cs" />
+    <Compile Include="Messaging\Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TimeoutManager.cs" />
-    <Compile Include="TransportMessage.cs" />
-    <Compile Include="Utils.cs" />
-    <Compile Include="WindsorEx.cs" />
+    <Compile Include="Serialization\BinarySerializer.cs" />
+    <Compile Include="Serialization\ISerializer.cs" />
+    <Compile Include="Transport\AbstractTransport.cs" />
+    <Compile Include="Transport\InProcTransport.cs" />
+    <Compile Include="Transport\ITransport.cs" />
+    <Compile Include="Transport\ITransportAware.cs" />
+    <Compile Include="Transport\MsmqTransport.cs" />
+    <Compile Include="Transport\TransportMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

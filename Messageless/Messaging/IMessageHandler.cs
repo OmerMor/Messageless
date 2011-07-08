@@ -1,4 +1,6 @@
-namespace Messageless
+using Messageless.Transport;
+
+namespace Messageless.Messaging
 {
     public interface IMessageHandler
     {

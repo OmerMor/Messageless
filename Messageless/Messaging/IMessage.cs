@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public interface IMessage
     {

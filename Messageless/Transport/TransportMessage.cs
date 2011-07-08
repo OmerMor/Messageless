@@ -1,6 +1,6 @@
 using System;
 
-namespace Messageless
+namespace Messageless.Transport
 {
     [Serializable]
     public class TransportMessage

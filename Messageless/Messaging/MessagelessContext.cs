@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public static class MessagelessContext
     {

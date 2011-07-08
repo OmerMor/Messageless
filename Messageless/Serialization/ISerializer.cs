@@ -1,4 +1,4 @@
-namespace Messageless
+namespace Messageless.Serialization
 {
     public interface ISerializer
     {

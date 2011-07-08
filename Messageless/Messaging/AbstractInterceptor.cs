@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
-using System.Reactive;
 using System.Reflection;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Registration;
+using Messageless.Serialization;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public abstract class AbstractInterceptor
     {

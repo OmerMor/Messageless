@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reactive.Linq;
 using FluentAssertions;
+using Messageless.Transport;
 using NUnit.Framework;
 
 namespace Messageless.Tests

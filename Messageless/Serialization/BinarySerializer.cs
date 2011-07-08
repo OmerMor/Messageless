@@ -2,7 +2,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace Messageless
+namespace Messageless.Serialization
 {
     public class BinarySerializer : ISerializer
     {

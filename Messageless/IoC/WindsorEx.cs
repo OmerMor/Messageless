@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
+using Messageless.Messaging;
 
-namespace Messageless
+namespace Messageless.IoC
 {
     public static class WindsorEx
     {

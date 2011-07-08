@@ -2,6 +2,10 @@ using Castle.Facilities.Startable;
 using Castle.MicroKernel;
 using Castle.MicroKernel.Facilities;
 using Castle.MicroKernel.Registration;
+using Messageless.IoC;
+using Messageless.Messaging;
+using Messageless.Serialization;
+using Messageless.Transport;
 
 namespace Messageless.Tests
 {

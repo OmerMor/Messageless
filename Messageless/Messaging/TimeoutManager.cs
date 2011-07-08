@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Reactive.Linq;
+using Messageless.Serialization;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public class TimeoutManager
     {

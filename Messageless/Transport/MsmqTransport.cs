@@ -4,17 +4,17 @@ using System.Reactive.Linq;
 using System.Runtime.Serialization.Formatters;
 using System.Security.Principal;
 
-namespace Messageless
+namespace Messageless.Transport
 {
-    public class MsmqTransport : ITransport, IDisposable
+    public class MsmqTransport : AbstractTransport
     {
         private MessageQueue m_messageQueue;
         private IObservable<TransportMessage> m_msgs;
-        public string LocalPath { get; private set; }
 
-        public void Init(string path)
+        public override void Init(string path)
         {
-            LocalPath = path;
+            base.Init(path);
+
             m_messageQueue = getIncomingQueue(LocalPath);
             var receiveAsync = Observable.FromAsyncPattern<Message>(
                 (cb,obj) => m_messageQueue.BeginReceive(MessageQueue.InfiniteTimeout, obj, cb), 
@@ -42,15 +42,7 @@ namespace Messageless
             return queue;
         }
 
-        public void Schedule(TransportMessage value, TimeSpan delay)
-        {
-            Observable
-                .Return(value)
-                .Delay(delay)
-                .Subscribe(this);
-        }
-        
-        public void OnNext(TransportMessage value)
+        public override void OnNext(TransportMessage value)
         {
             using (var mq = getOutgoingQueue(value.RecipientPath))
             {
@@ -91,27 +83,19 @@ namespace Messageless
             queue.SetPermissions(administratorsGroupName, MessageQueueAccessRights.FullControl, AccessControlEntryType.Allow);
         }
 
-        public void OnError(Exception error)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnCompleted()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IDisposable Subscribe(IObserver<TransportMessage> observer)
+        public override IDisposable Subscribe(IObserver<TransportMessage> observer)
         {
             return m_msgs.Subscribe(observer);
         }
 
         #region Implementation of IDisposable
 
-        public void Dispose()
+        public override void Dispose()
         {
             Console.WriteLine("Disposing MQ");
             m_messageQueue.Dispose();
+
+            base.Dispose();
         }
 
         #endregion

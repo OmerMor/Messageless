@@ -1,7 +1,8 @@
 using System;
 using System.Reflection;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     [Serializable]
     public class CallbackMessage : IMessage, ITransportAware

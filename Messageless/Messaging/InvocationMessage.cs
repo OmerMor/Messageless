@@ -1,8 +1,9 @@
 using System;
 using System.Reflection;
 using Castle.DynamicProxy;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     [Serializable]
     public class InvocationMessage : IMessage, ITransportAware

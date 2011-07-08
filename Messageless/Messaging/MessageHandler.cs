@@ -1,12 +1,11 @@
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
-using Castle.Core;
-using Castle.DynamicProxy;
-using Castle.MicroKernel;
 using System;
 using System.Linq;
+using Castle.Core;
+using Castle.MicroKernel;
+using Messageless.Serialization;
+using Messageless.Transport;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     public class MessageHandler : IStartable, IMessageHandler
     {
@@ -14,7 +13,8 @@ namespace Messageless
         private readonly ISerializer m_serializer;
         private readonly ITransport m_transport;
         private IDisposable m_subscription;
-        private TimeoutManager m_timeoutManager;
+        private readonly TimeoutManager m_timeoutManager;
+        private readonly object m_locker = new object();
 
         public MessageHandler(IKernel kernel, ITransport transport, ISerializer serializer, TimeoutManager timeoutManager)
         {
@@ -24,6 +24,7 @@ namespace Messageless
             m_timeoutManager = timeoutManager;
         }
 
+        // TODO: use rx oftype
         public void Handle(TransportMessage message)
         {
             try
@@ -44,7 +45,7 @@ namespace Messageless
             }
             catch (Exception ex)
             {
-                //TODO: log
+                // TODO: log
                 Console.WriteLine(ex);
             }
         }
@@ -61,20 +62,21 @@ namespace Messageless
         public void Handle(CallbackMessage msg)
         {
             var token = msg.Context.RecipientKey;
-            try
-            {
-                Console.WriteLine("resolving " + token);
-                var callback = m_kernel.Resolve<Delegate>(token);
+            m_timeoutManager.DismissTimeoutAction(token);
 
-                replaceTokensWithCallbackProxies(msg, msg.Context.SenderPath);
-                m_kernel.RemoveComponent(token);
-                Console.WriteLine("removed " + token);
-                MessagelessContext.Execute(context => callback.DynamicInvoke(msg.Arguments), msg.Context);
-            }
-            finally
+            Delegate callback;
+            lock (m_locker)
             {
-                m_timeoutManager.DismissTimeoutAction(token);
+                if (!m_kernel.HasComponent(token)) 
+                    return;
+
+                callback = m_kernel.Resolve<Delegate>(token);
+                m_kernel.RemoveComponent(token);
             }
+
+            Console.WriteLine("resolved and removed " + token);
+            replaceTokensWithCallbackProxies(msg, msg.Context.SenderPath);
+            MessagelessContext.Execute(context => callback.DynamicInvoke(msg.Arguments), msg.Context);
         }
 
         private void replaceTokensWithCallbackProxies(IMessage invocation, string senderPath)
@@ -116,7 +118,8 @@ namespace Messageless
 
         public void Start()
         {
-            m_subscription = m_transport.Subscribe(Handle, Console.WriteLine, () => Console.WriteLine("OnCompleted"));
+            m_subscription = m_transport.Subscribe(Handle, Console.WriteLine, 
+                () => Console.WriteLine("OnCompleted"));
         }
 
         public void Stop()
@@ -125,10 +128,5 @@ namespace Messageless
         }
 
         #endregion
-    }
-
-    public interface ITransportAware
-    {
-        void SetTransportMessage(TransportMessage transportMessage);
     }
 }

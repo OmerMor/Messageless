@@ -1,6 +1,6 @@
 using System;
 
-namespace Messageless
+namespace Messageless.Messaging
 {
     [Serializable]
     public class Context
